@@ -1,140 +1,108 @@
 # 📋 Catatan Pengembangan — Kasir App
 
-## Perbedaan Penggunaan Lokal vs Deploy di Cloudflare Pages
+---
+
+## 📗 Panduan Setup Google Spreadsheet (Backend)
+
+Ikuti langkah-langkah ini untuk membuat database menggunakan Google Spreadsheet:
+
+### 1. Buat Spreadsheet Baru
+1. Buka [sheets.new](https://sheets.new).
+2. Beri nama (misal: "Kasir Database").
+
+### 2. Struktur Sheet & Tabel (Wajib Sama Persis)
+
+Buatlah 5 sheet (tab) dengan nama berikut, lalu isi Baris 1 sebagai Header:
+
+#### 🟢 Sheet: `Products`
+Digunakan untuk menyimpan stok barang.
+| Kolom | Header (Baris 1) | Contoh Data (Baris 2) |
+|---|---|---|
+| A | `Code` | `BR001` |
+| B | `Name` | `Kertas A4` |
+| C | `Category` | `ATK` |
+| D | `PurchasePrice` | `50000` |
+| E | `SellingPrice` | `65000` |
+| F | `Stock` | `100` |
+
+#### 🔵 Sheet: `Customers`
+Digunakan untuk data pelanggan.
+| Kolom | Header (Baris 1) | Contoh Data (Baris 2) |
+|---|---|---|
+| A | `Name` | `Budi Santoso` |
+| B | `Phone` | `08123456789` |
+| C | `Address` | `Jl. Mawar No. 5` |
+| D | `Notes` | `Pelanggan Setia` |
+
+#### 🟠 Sheet: `Transactions`
+Mencatat riwayat penjualan.
+| Kolom | Header (Baris 1) | Isi / Keterangan |
+|---|---|---|
+| A | `ID` | Transaksi ID (otomatis) |
+| B | `Date` | Tanggal |
+| C | `Customer` | Nama Pelanggan |
+| D | `Total` | Total Harga |
+| E | `Items` | List barang (Format JSON) |
+| F | `Notes` | Catatan Tambahan |
+
+#### 🟡 Sheet: `Quotations`
+Mencatat penawaran harga.
+| Kolom | Header (Baris 1) | Isi / Keterangan |
+|---|---|---|
+| A | `ID` | Quotation ID (otomatis) |
+| B | `Date` | Tanggal |
+| C | `Customer` | Nama Pelanggan |
+| D | `Total` | Total Harga |
+| E | `Items` | List barang (Format JSON) |
+| F | `Notes` | Catatan Tambahan |
+
+#### 🔴 Sheet: `Users`
+Data akun untuk login aplikasi.
+| Kolom | Header (Baris 1) | Contoh Data (Baris 2) |
+|---|---|---|
+| A | `Email` | `admin@gmail.com` |
+| B | `Password` | `1234` |
+| C | `Role` | `Admin` |
+| D | `Name` | `Administrator` |
 
 ---
 
-## 🖥️ Mode Lokal (Development)
+### 3. Pasang Google Apps Script
+1. Di Spreadsheet, klik menu **Extensions -> Apps Script**.
+2. Hapus semua kode di `Code.gs`.
+3. Copy-paste isi file `backend_apps_script.js` ke Apps Script.
+4. Klik **Save** (Disket).
 
-### Cara Menjalankan
-```bash
-npm run dev
-```
-Akses di: `http://localhost:5173`
+### 4. Deployment
+1. Klik **Deploy** -> **New Deployment**.
+2. Pilih Type: **Web App**.
+3. **Execute as**: `Me`.
+4. **Who has access**: **Anyone** (Wajib).
+5. Copy **Web App URL** yang didapat.
 
-### Konfigurasi `vite.config.js`
+---
+
+## 🖥️ Mode Lokal vs Deploy
+
+### 1. Mode Lokal (Development)
+- Jalankan: `npm run dev`
+- Edit `api.js`: `const MOCK_MODE = true;` (Jika ingin simulasi tanpa internet).
+
+### 2. Deploy Cloudflare Pages
+- **Build command**: `npm run build`
+- **Build output directory**: `dist`
+- **_redirects**: Wajib ada di folder `public` berisi `/* /index.html 200`.
+
+### 3. Deploy GitHub Pages
+- **base** di `vite.config.js`: `'/kasir/'` (atau nama repo).
+- **Router**: Disarankan `HashRouter` di `App.jsx`.
+- **Source**: Pilih `GitHub Actions` di settings repo.
+
+---
+
+## 🔑 Checklist SCRIPT_URL
+Pastikan di `src/services/api.js`:
 ```js
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  // base: TIDAK perlu diset, default '/'
-})
+const SCRIPT_URL = 'URL_HASIL_DEPLOY_APPS_SCRIPT_DI_SINI';
+const MOCK_MODE = false;
 ```
-
-### Konfigurasi Router (`App.jsx`)
-```jsx
-// Gunakan BrowserRouter untuk URL yang bersih
-import { BrowserRouter as Router } from 'react-router-dom';
-```
-
-### Konfigurasi `api.js`
-| Setting | Nilai | Keterangan |
-|---|---|---|
-| `MOCK_MODE` | `true` | Autentikasi lokal, tanpa Google Sheets |
-| `MOCK_MODE` | `false` | Terhubung ke Google Apps Script |
-
-### Akun Login (Mode Lokal / MOCK_MODE = true)
-| Email | Password | Role |
-|---|---|---|
-| `admin@gmail.com` | `1234` | Admin |
-| `kasir@gmail.com` | `1234` | Pegawai |
-
----
-
-## ☁️ Deploy di Cloudflare Pages
-
-### Cara Build
-```bash
-npm run build
-# Output ada di folder: dist/
-```
-
-### Setup di Cloudflare Pages Dashboard
-1. Buka [pages.cloudflare.com](https://pages.cloudflare.com)
-2. Klik **Create a project → Connect to Git**
-3. Pilih repo `labpanel/kasir`
-4. Isi pengaturan build:
-   - **Build command**: `npm run build`
-   - **Build output directory**: `dist`
-   - **Node.js version**: `20`
-
-### Konfigurasi `vite.config.js`
-```js
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  base: '/', // Cloudflare Pages pakai domain sendiri, base tetap '/'
-})
-```
-
-> [!NOTE]
-> Berbeda dengan GitHub Pages yang pakai sub-path `/kasir/`, Cloudflare Pages menggunakan domain root sehingga `base: '/'` sudah cukup.
-
-### Konfigurasi Router (`App.jsx`)
-```jsx
-// Tetap gunakan BrowserRouter — Cloudflare Pages mendukung SPA routing
-import { BrowserRouter as Router } from 'react-router-dom';
-```
-
-### Menangani Client-Side Routing di Cloudflare Pages
-Buat file `public/_redirects` agar semua rute diarahkan ke `index.html`:
-
-```
-/* /index.html 200
-```
-
-File ini **wajib ada** agar halaman seperti `/login`, `/register` tidak error 404 saat diakses langsung atau di-refresh.
-
-### Konfigurasi `api.js` (Production)
-```js
-const MOCK_MODE = false; // Wajib false di production
-```
-Pastikan `SCRIPT_URL` sudah menggunakan URL deployment Google Apps Script yang valid.
-
----
-
-## 📊 Tabel Perbandingan Lengkap
-
-| Aspek | Lokal (Dev) | Cloudflare Pages |
-|---|---|---|
-| Perintah | `npm run dev` | `npm run build` |
-| URL | `localhost:5173` | `*.pages.dev` atau domain custom |
-| `base` di Vite | `/` (default) | `/` |
-| Router | `BrowserRouter` | `BrowserRouter` |
-| `_redirects` | Tidak perlu | **Wajib** di `public/` |
-| `MOCK_MODE` | `true` atau `false` | `false` (gunakan GAS) |
-| HTTPS | Tidak | **Ya** (otomatis) |
-| Build folder | - | `dist/` |
-
----
-
-## ⚙️ Perbedaan dengan GitHub Pages
-
-| Aspek | GitHub Pages | Cloudflare Pages |
-|---|---|---|
-| `base` di Vite | `/kasir/` (nama repo) | `/` |
-| Router | `HashRouter` (disarankan) | `BrowserRouter` |
-| SPA redirect | Manual (404.html trick) | Otomatis via `_redirects` |
-| Deploy otomatis | GitHub Actions | Built-in (connect repo) |
-| Custom domain | Perlu konfigurasi DNS | Lebih mudah |
-
----
-
-## 🚀 Langkah Deploy ke Cloudflare Pages (Ringkas)
-
-1. Buat file `public/_redirects` berisi: `/* /index.html 200`
-2. Pastikan `MOCK_MODE = false` di `api.js`
-3. Pastikan `vite.config.js` menggunakan `base: '/'`
-4. Pastikan `App.jsx` menggunakan `BrowserRouter`
-5. Push ke GitHub
-6. Connect repo di Cloudflare Pages → Build otomatis berjalan
-
----
-
-## 🔑 Checklist Sebelum Deploy
-
-- [ ] `MOCK_MODE = false` di `src/services/api.js`
-- [ ] `SCRIPT_URL` di `api.js` sudah URL GAS yang valid dan aktif
-- [ ] File `public/_redirects` sudah ada
-- [ ] `vite.config.js` menggunakan `base: '/'`
-- [ ] `App.jsx` menggunakan `BrowserRouter`
-- [ ] Sheet `Users` di Google Spreadsheet sudah berisi akun yang valid
-- [ ] Google Apps Script dideploy dengan akses **"Anyone"**

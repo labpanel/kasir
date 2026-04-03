@@ -21,3 +21,46 @@
     @apply antialiased min-h-screen font-sans;
   }
 }
+
+/* Print styles for Quotation PDF */
+@media print {
+  /* Reset page */
+  html, body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide the entire app (sidebar, navbar, everything) */
+  #root {
+    display: none !important;
+  }
+
+  /* Show only the print area (portal outside #root) */
+  #print-area {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+  }
+
+  /* Clean print area */
+  .print-template {
+    padding: 16px 24px;
+    max-width: 100%;
+    margin: 0 auto;
+    background: white !important;
+  }
+
+  /* Page settings */
+  @page {
+    size: A4;
+    margin: 12mm 10mm;
+  }
+}
+
+

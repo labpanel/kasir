@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -13,17 +14,21 @@ import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import useStore from './store/useStore';
 
-const Layout = ({ children }) => (
-  <div className="flex h-screen bg-gray-100">
-    <Sidebar />
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <Navbar />
-      <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
-        {children}
-      </main>
+const Layout = ({ children }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <Navbar onMenuToggle={() => setSidebarOpen(prev => !prev)} />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-3 md:p-6">
+          {children}
+        </main>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const ProtectedRoute = ({ children }) => {
   const user = useStore((state) => state.user);

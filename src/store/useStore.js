@@ -22,6 +22,27 @@ const useStore = create(
       updateSettings: (newSettings) => 
         set((state) => ({ settings: { ...state.settings, ...newSettings } })),
 
+      // --- Quotation Template Settings ---
+      quotationSettings: {
+        template: 'professional', // 'professional', 'minimalist', 'classic', 'thermal'
+        thermalPaperWidth: '58mm', // '58mm' or '80mm'
+        validityDays: 14,
+        terms: [
+          'Harga dapat berubah sewaktu-waktu tanpa pemberitahuan terlebih dahulu.',
+          'Penawaran ini berlaku selama 14 hari sejak tanggal diterbitkan.',
+          'Pembayaran dilakukan sesuai kesepakatan bersama.',
+        ],
+        signatureLeft: 'Pelanggan',
+        signatureRight: 'Hormat Kami',
+        signatureLeftImage: '',  // base64 data URL
+        signatureRightImage: '', // base64 data URL
+        showLogo: true,
+        accentColor: '#1e40af',
+        footerText: '',
+      },
+      updateQuotationSettings: (newSettings) =>
+        set((state) => ({ quotationSettings: { ...state.quotationSettings, ...newSettings } })),
+
       // --- Cart State (POS) ---
       cart: [],
       addToCart: (product, qty = 1) => set((state) => {
@@ -49,7 +70,7 @@ const useStore = create(
     }),
     {
       name: 'kasir-storage', // name of the item in the storage (must be unique)
-      partialize: (state) => ({ user: state.user, settings: state.settings }), // don't persist cart
+      partialize: (state) => ({ user: state.user, settings: state.settings, quotationSettings: state.quotationSettings }),
     }
   )
 );
