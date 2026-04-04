@@ -218,27 +218,29 @@ function updateStock(purchasedItems, type) {
 
 function getTransactions() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
+  if (!sheet) return [];
   var data = sheet.getDataRange().getValues();
-  var summaryByDate = {};
+  var transactions = [];
 
   for (var i = 1; i < data.length; i++) {
     if (data[i][0]) {
-      var dateRaw = new Date(data[i][0]);
-      var dateStr = dateRaw.toISOString().split('T')[0];
-      var total = Number(data[i][4]); // Subtotal column is E (index 4)
-      
-      if (!summaryByDate[dateStr]) {
-        summaryByDate[dateStr] = 0;
-      }
-      summaryByDate[dateStr] += total;
+      transactions.push({
+        date: data[i][0].toString(),
+        type: data[i][1] ? data[i][1].toString() : 'Penjualan',
+        customerId: data[i][2] ? data[i][2].toString() : '',
+        customerName: data[i][3] ? data[i][3].toString() : '',
+        supplierName: data[i][4] ? data[i][4].toString() : '',
+        paymentMethod: data[i][5] ? data[i][5].toString() : 'Cash',
+        receiptNo: data[i][6] ? data[i][6].toString() : '',
+        items: data[i][7] ? data[i][7].toString() : '[]',
+        subtotal: Number(data[i][8]) || 0,
+        payAmount: Number(data[i][9]) || 0,
+        change: Number(data[i][10]) || 0
+      });
     }
   }
   
-  var transactions = [];
-  for (var date in summaryByDate) {
-    transactions.push({ date: date, total: summaryByDate[date] });
-  }
-  return transactions.sort((a,b) => a.date.localeCompare(b.date));
+  return transactions.sort((a,b) => new Date(b.date) - new Date(a.date)); // descending
 }
 
 // ======================== QUOTATIONS ========================

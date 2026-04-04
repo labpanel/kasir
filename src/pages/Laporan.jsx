@@ -10,10 +10,28 @@ const Laporan = () => {
   useEffect(() => {
     const fetchReports = async () => {
       const trans = await api.getTransactions();
-      setData(trans);
+      
+      // Aggregate data for chart (only Penjualan)
+      const summaryByDate = {};
+      (trans || []).forEach(t => {
+        if (t.type !== 'Pembelian') { // Include Penjualan
+          const dateStr = new Date(t.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+          if (!summaryByDate[dateStr]) summaryByDate[dateStr] = 0;
+          summaryByDate[dateStr] += (t.subtotal || 0);
+        }
+      });
+
+      const aggregatedData = Object.keys(summaryByDate).map(date => ({
+        date,
+        total: summaryByDate[date]
+      }));
+
+      // Sort chronological
+      aggregatedData.sort((a,b) => new Date(a.date) - new Date(b.date));
+      setData(aggregatedData);
     };
     fetchReports();
-  }, []);
+  }, [period]);
 
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
 

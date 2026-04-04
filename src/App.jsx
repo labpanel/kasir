@@ -11,6 +11,7 @@ import StokBarang from './pages/StokBarang';
 import Pelanggan from './pages/Pelanggan';
 import Supplier from './pages/Supplier';
 import Quotation from './pages/Quotation';
+import Riwayat from './pages/Riwayat';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import useStore from './store/useStore';
@@ -94,6 +95,7 @@ function App() {
         <Route path="/pelanggan" element={<PermissionRoute permKey="pelanggan"><Pelanggan /></PermissionRoute>} />
         <Route path="/supplier" element={<PermissionRoute permKey="supplier"><Supplier /></PermissionRoute>} />
         <Route path="/quotation" element={<PermissionRoute permKey="quotation"><Quotation /></PermissionRoute>} />
+        <Route path="/riwayat" element={<PermissionRoute permKey="riwayat"><Riwayat /></PermissionRoute>} />
         <Route path="/laporan" element={<PermissionRoute permKey="laporan"><Laporan /></PermissionRoute>} />
         <Route path="/pengaturan" element={<PermissionRoute permKey="pengaturan"><Pengaturan /></PermissionRoute>} />
 

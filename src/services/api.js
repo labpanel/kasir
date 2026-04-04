@@ -1,4 +1,4 @@
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby21J8foPUfY-R1WKqNwFB-UhBkdNNm1jSpOKpk_U955eF8hia4Z5G3lorzF43hA5e2/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBXqsIqwwvpg4G097FGrMifV5yQ42hSi3Zq3BRstZmfwnrrZ-N1KgGJChTFlLFNHu8mg/exec';
 
 // Set to true for local-only authentication and data management
 const MOCK_MODE = false;
@@ -96,7 +96,10 @@ export const api = {
 
   // TRANSACTIONS
   async getTransactions() {
-    if (MOCK_MODE) return [];
+    if (MOCK_MODE) return [
+      { date: new Date().toISOString(), type: 'Penjualan', receiptNo: 'TRX-1234', customerName: 'Budi', subtotal: 150000, items: '[{"name": "Produk A", "qty": 2, "sellingPrice": 75000}]' },
+      { date: new Date(Date.now() - 86400000).toISOString(), type: 'Pembelian', receiptNo: 'TRX-1235', supplierName: 'Supplier X', subtotal: 500000, items: '[]' }
+    ];
     return await request('getTransactions');
   },
   async saveTransaction(transactionData) {

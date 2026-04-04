@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Users, FileText, LayoutDashboard, ShoppingCart, Package, BarChart2, Settings, X, Truck } from 'lucide-react';
+import { Users, FileText, LayoutDashboard, ShoppingCart, Package, BarChart2, Settings, X, Truck, History } from 'lucide-react';
 import useStore from '../store/useStore';
 
 // All nav items with their permission keys
@@ -10,6 +10,7 @@ const ALL_NAV_ITEMS = [
   { name: 'Pelanggan', path: '/pelanggan', icon: Users, key: 'pelanggan' },
   { name: 'Supplier', path: '/supplier', icon: Truck, key: 'supplier' },
   { name: 'Quotation', path: '/quotation', icon: FileText, key: 'quotation' },
+  { name: 'Riwayat', path: '/riwayat', icon: History, key: 'riwayat' },
   { name: 'Laporan', path: '/laporan', icon: BarChart2, key: 'laporan' },
   { name: 'Pengaturan', path: '/pengaturan', icon: Settings, key: 'pengaturan' },
 ];

@@ -26,6 +26,7 @@ const ALL_PERMISSIONS = [
   { key: 'pelanggan', label: 'Pelanggan', icon: Users },
   { key: 'supplier', label: 'Supplier', icon: Truck },
   { key: 'quotation', label: 'Quotation', icon: FileText },
+  { key: 'riwayat', label: 'Riwayat Transaksi', icon: FileText },
   { key: 'laporan', label: 'Laporan', icon: BarChart2 },
   { key: 'pengaturan', label: 'Pengaturan', icon: Settings },
 ];
