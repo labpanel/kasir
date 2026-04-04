@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../services/api';
 import useStore from '../store/useStore';
-import { Search, Plus, Minus, Trash2, Printer, Settings, X, ChevronDown, ChevronUp, Upload, Image } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Printer, Settings, X, ChevronDown, ChevronUp, Upload, Image, Percent } from 'lucide-react';
 
 // =============================================
 // SIGNATURE BLOCK HELPER
@@ -27,7 +27,7 @@ const SignatureBlock = ({ label, name, image, style = {} }) => (
 // 3 PRINT TEMPLATES
 // =============================================
 
-const TemplateProfessional = ({ settings, qSettings, custObj, cart, subtotal, quotationNo, notes, formatIDR }) => {
+const TemplateProfessional = ({ settings, qSettings, custObj, cart, subtotal, taxPercent, taxAmount, grandTotal, quotationNo, notes, formatIDR }) => {
   const accent = qSettings.accentColor || '#1e40af';
   return (
     <div className="print-template" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", color: '#1e293b' }}>
@@ -42,16 +42,19 @@ const TemplateProfessional = ({ settings, qSettings, custObj, cart, subtotal, qu
                 </div>
                 <div>
                   <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#1e293b', margin: 0 }}>{settings.storeName}</h1>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>{settings.storeAddress}</p>
+                  {qSettings.showStoreAddress && <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>{settings.storeAddress}</p>}
                 </div>
               </div>
             )}
             {!qSettings.showLogo && <h1 style={{ fontSize: '24px', fontWeight: '800', margin: '0 0 4px 0' }}>{settings.storeName}</h1>}
-            <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>Tel: {settings.storePhone}</p>
+            {qSettings.showStoreAddress && !qSettings.showLogo && <p style={{ fontSize: '12px', color: '#64748b', margin: '0' }}>{settings.storeAddress}</p>}
+            {qSettings.showStorePhone && <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>Tel: {settings.storePhone}</p>}
+            {qSettings.showStoreEmail && <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0 0' }}>Email: {settings.storeEmail}</p>}
+            {qSettings.showStoreWebsite && <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0 0' }}>{settings.storeWebsite}</p>}
           </div>
           <div style={{ textAlign: 'right' }}>
-            <h2 style={{ fontSize: '28px', fontWeight: '800', color: accent, margin: 0, letterSpacing: '2px' }}>QUOTATION</h2>
-            <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0' }}>Penawaran Harga</p>
+            <h2 style={{ fontSize: '28px', fontWeight: '800', color: accent, margin: 0, letterSpacing: '2px' }}>{qSettings.headerTitle || 'QUOTATION'}</h2>
+            <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0' }}>{qSettings.headerSubtitle || 'Penawaran Harga'}</p>
           </div>
         </div>
       </div>
@@ -95,7 +98,6 @@ const TemplateProfessional = ({ settings, qSettings, custObj, cart, subtotal, qu
               <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>{idx + 1}</td>
               <td style={{ padding: '12px 16px' }}>
                 <p style={{ fontSize: '14px', fontWeight: '600', margin: 0 }}>{item.name}</p>
-                <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 0 0' }}>Kode: {item.code}</p>
               </td>
               <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '600' }}>{item.qty}</td>
               <td style={{ padding: '12px 16px', textAlign: 'right', fontSize: '13px', color: '#475569' }}>{formatIDR(item.sellingPrice)}</td>
@@ -111,9 +113,14 @@ const TemplateProfessional = ({ settings, qSettings, custObj, cart, subtotal, qu
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e2e8f0', fontSize: '14px', color: '#475569' }}>
             <span>Subtotal</span><span>{formatIDR(subtotal)}</span>
           </div>
+          {taxPercent > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e2e8f0', fontSize: '14px', color: '#475569' }}>
+              <span>PPN ({taxPercent}%)</span><span>{formatIDR(taxAmount)}</span>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: accent, borderRadius: '8px', marginTop: '8px' }}>
             <span style={{ fontWeight: '800', fontSize: '16px', color: 'white' }}>TOTAL</span>
-            <span style={{ fontWeight: '800', fontSize: '16px', color: 'white' }}>{formatIDR(subtotal)}</span>
+            <span style={{ fontWeight: '800', fontSize: '16px', color: 'white' }}>{formatIDR(grandTotal)}</span>
           </div>
         </div>
       </div>
@@ -149,31 +156,37 @@ const TemplateProfessional = ({ settings, qSettings, custObj, cart, subtotal, qu
   );
 };
 
-const TemplateMinimalist = ({ settings, qSettings, custObj, cart, subtotal, quotationNo, notes, formatIDR }) => (
+const TemplateMinimalist = ({ settings, qSettings, custObj, cart, subtotal, taxPercent, taxAmount, grandTotal, quotationNo, notes, formatIDR }) => (
   <div className="print-template" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", color: '#333', padding: '20px' }}>
-    {/* Header - Ultra clean */}
     <div style={{ marginBottom: '32px' }}>
-      <h1 style={{ fontSize: '14px', fontWeight: '400', textTransform: 'uppercase', letterSpacing: '4px', color: '#999', margin: '0 0 24px 0' }}>Quotation</h1>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '2px solid #333', paddingBottom: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 4px 0' }}>{settings.storeName}</h2>
-          <p style={{ fontSize: '12px', color: '#777', margin: 0 }}>{settings.storeAddress} • {settings.storePhone}</p>
+          <h1 style={{ fontSize: '20px', fontWeight: '700', letterSpacing: '1px', textTransform: 'uppercase', margin: 0 }}>{settings.storeName}</h1>
+          {qSettings.showStoreAddress && <p style={{ fontSize: '12px', color: '#555', margin: '4px 0 0 0' }}>{settings.storeAddress}</p>}
+          {qSettings.showStorePhone && <p style={{ fontSize: '12px', color: '#555', margin: '2px 0 0 0' }}>{settings.storePhone}</p>}
+          {qSettings.showStoreEmail && <p style={{ fontSize: '12px', color: '#555', margin: '2px 0 0 0' }}>{settings.storeEmail}</p>}
+          {qSettings.showStoreWebsite && <p style={{ fontSize: '12px', color: '#555', margin: '2px 0 0 0' }}>{settings.storeWebsite}</p>}
         </div>
-        <div style={{ textAlign: 'right', fontSize: '12px', color: '#777' }}>
-          <p style={{ margin: '0 0 2px 0' }}><strong style={{ color: '#333' }}>{quotationNo}</strong></p>
-          <p style={{ margin: '0 0 2px 0' }}>{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-          <p style={{ margin: 0 }}>Berlaku {qSettings.validityDays} hari</p>
+        <div style={{ textAlign: 'right' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: '600', letterSpacing: '2px', color: '#555', margin: 0 }}>{qSettings.headerTitle || 'QUOTATION'}</h2>
+          <p style={{ fontSize: '12px', color: '#777', margin: '4px 0 0 0' }}>{qSettings.headerSubtitle || 'Penawaran Harga'}</p>
         </div>
       </div>
     </div>
 
-    <div style={{ height: '1px', backgroundColor: '#eee', marginBottom: '24px' }} />
-
     {/* Customer */}
-    <div style={{ marginBottom: '28px' }}>
-      <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '2px', color: '#aaa', margin: '0 0 8px 0' }}>Kepada</p>
-      <p style={{ fontSize: '15px', fontWeight: '600', margin: '0 0 2px 0' }}>{custObj.name || '—'}</p>
-      <p style={{ fontSize: '12px', color: '#777', margin: 0 }}>{custObj.address || ''} {custObj.phone ? `• ${custObj.phone}` : ''}</p>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '28px' }}>
+      <div>
+        <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '2px', color: '#aaa', margin: '0 0 8px 0' }}>Kepada</p>
+        <p style={{ fontSize: '15px', fontWeight: '600', margin: '0 0 2px 0' }}>{custObj.name || '—'}</p>
+        <p style={{ fontSize: '12px', color: '#333', margin: 0 }}>{custObj.address || ''}</p>
+        <p style={{ fontSize: '12px', color: '#333', margin: 0 }}>{custObj.phone || ''}</p>
+      </div>
+      <div style={{ textAlign: 'right' }}>
+        <p style={{ fontSize: '12px', color: '#555', margin: '0 0 4px 0' }}>Tanggal: {new Date().toLocaleDateString('id-ID')}</p>
+        <p style={{ fontSize: '12px', color: '#555', margin: '0 0 4px 0' }}>Nomor: {quotationNo}</p>
+        <p style={{ fontSize: '12px', color: '#555', margin: 0 }}>Valid s.d: {new Date(Date.now() + qSettings.validityDays * 86400000).toLocaleDateString('id-ID')}</p>
+      </div>
     </div>
 
     {/* Table */}
@@ -190,7 +203,6 @@ const TemplateMinimalist = ({ settings, qSettings, custObj, cart, subtotal, quot
           <tr key={item.code} style={{ borderBottom: '1px solid #eee' }}>
             <td style={{ padding: '12px 0' }}>
               <span style={{ fontWeight: '500' }}>{item.name}</span>
-              <span style={{ fontSize: '11px', color: '#aaa', marginLeft: '8px' }}>{item.code}</span>
             </td>
             <td style={{ padding: '12px 0', textAlign: 'right' }}>{item.qty}</td>
             <td style={{ padding: '12px 0', textAlign: 'right', color: '#555' }}>{formatIDR(item.sellingPrice)}</td>
@@ -202,9 +214,19 @@ const TemplateMinimalist = ({ settings, qSettings, custObj, cart, subtotal, quot
 
     {/* Total */}
     <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '32px' }}>
-      <div style={{ borderTop: '2px solid #333', paddingTop: '8px', width: '200px', display: 'flex', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: '14px', fontWeight: '700' }}>Total</span>
-        <span style={{ fontSize: '14px', fontWeight: '700' }}>{formatIDR(subtotal)}</span>
+      <div style={{ width: '240px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '13px', color: '#555' }}>
+          <span>Subtotal</span><span>{formatIDR(subtotal)}</span>
+        </div>
+        {taxPercent > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '13px', color: '#555' }}>
+            <span>PPN ({taxPercent}%)</span><span>{formatIDR(taxAmount)}</span>
+          </div>
+        )}
+        <div style={{ borderTop: '2px solid #333', paddingTop: '8px', marginTop: '4px', display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '14px', fontWeight: '700' }}>Total</span>
+          <span style={{ fontSize: '14px', fontWeight: '700' }}>{formatIDR(grandTotal)}</span>
+        </div>
       </div>
     </div>
 
@@ -225,15 +247,22 @@ const TemplateMinimalist = ({ settings, qSettings, custObj, cart, subtotal, quot
   </div>
 );
 
-const TemplateClassic = ({ settings, qSettings, custObj, cart, subtotal, quotationNo, notes, formatIDR }) => (
+const TemplateClassic = ({ settings, qSettings, custObj, cart, subtotal, taxPercent, taxAmount, grandTotal, quotationNo, notes, formatIDR }) => (
   <div className="print-template" style={{ fontFamily: "'Times New Roman', Times, serif", color: '#1a1a1a', padding: '20px' }}>
     {/* Header */}
     <div style={{ textAlign: 'center', borderBottom: '3px double #1a1a1a', paddingBottom: '16px', marginBottom: '24px' }}>
-      <h1 style={{ fontSize: '26px', fontWeight: '700', margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '3px' }}>{settings.storeName}</h1>
-      <p style={{ fontSize: '12px', color: '#555', margin: 0 }}>{settings.storeAddress} | Tel: {settings.storePhone}</p>
+      <h1 style={{ fontSize: '26px', fontWeight: 'bold', margin: '0 0 8px 0', textTransform: 'uppercase' }}>{settings.storeName}</h1>
+      {qSettings.showStoreAddress && <p style={{ fontSize: '13px', margin: '0 0 4px 0' }}>{settings.storeAddress}</p>}
+      {qSettings.showStorePhone && <p style={{ fontSize: '13px', margin: '0 0 2px 0' }}>Telp: {settings.storePhone}</p>}
+      {qSettings.showStoreEmail && <p style={{ fontSize: '13px', margin: '0 0 2px 0' }}>Email: {settings.storeEmail}</p>}
+      {qSettings.showStoreWebsite && <p style={{ fontSize: '13px', margin: 0 }}>{settings.storeWebsite}</p>}
     </div>
 
-    <h2 style={{ textAlign: 'center', fontSize: '18px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '4px', margin: '0 0 20px 0', textDecoration: 'underline' }}>Surat Penawaran Harga</h2>
+    {/* Title */}
+    <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+      <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0 0 4px 0', textDecoration: 'underline' }}>{qSettings.headerTitle || 'QUOTATION'}</h2>
+      <p style={{ fontSize: '13px', margin: 0 }}>{qSettings.headerSubtitle || 'Penawaran Harga'} - No. {quotationNo}</p>
+    </div>
 
     {/* Meta */}
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontSize: '13px' }}>
@@ -265,15 +294,21 @@ const TemplateClassic = ({ settings, qSettings, custObj, cart, subtotal, quotati
         {cart.map((item, idx) => (
           <tr key={item.code}>
             <td style={{ border: '1px solid #999', padding: '8px 10px', textAlign: 'center', fontSize: '13px' }}>{idx + 1}</td>
-            <td style={{ border: '1px solid #999', padding: '8px 10px', fontSize: '13px' }}>{item.name} <span style={{ color: '#888', fontSize: '11px' }}>({item.code})</span></td>
+            <td style={{ border: '1px solid #999', padding: '8px 10px', fontSize: '13px' }}>{item.name}</td>
             <td style={{ border: '1px solid #999', padding: '8px 10px', textAlign: 'center', fontSize: '13px' }}>{item.qty}</td>
             <td style={{ border: '1px solid #999', padding: '8px 10px', textAlign: 'right', fontSize: '13px' }}>{formatIDR(item.sellingPrice)}</td>
             <td style={{ border: '1px solid #999', padding: '8px 10px', textAlign: 'right', fontSize: '13px', fontWeight: '600' }}>{formatIDR(item.sellingPrice * item.qty)}</td>
           </tr>
         ))}
+        {taxPercent > 0 && (
+          <tr style={{ backgroundColor: '#f5f5f5' }}>
+            <td colSpan="4" style={{ border: '1px solid #999', padding: '8px 10px', textAlign: 'right', fontSize: '13px' }}>PPN ({taxPercent}%)</td>
+            <td style={{ border: '1px solid #999', padding: '8px 10px', textAlign: 'right', fontSize: '13px' }}>{formatIDR(taxAmount)}</td>
+          </tr>
+        )}
         <tr style={{ backgroundColor: '#f5f5f5' }}>
           <td colSpan="4" style={{ border: '1px solid #333', padding: '10px', textAlign: 'right', fontWeight: '700', fontSize: '14px' }}>TOTAL</td>
-          <td style={{ border: '1px solid #333', padding: '10px', textAlign: 'right', fontWeight: '700', fontSize: '14px' }}>{formatIDR(subtotal)}</td>
+          <td style={{ border: '1px solid #333', padding: '10px', textAlign: 'right', fontWeight: '700', fontSize: '14px' }}>{formatIDR(grandTotal)}</td>
         </tr>
       </tbody>
     </table>
@@ -299,13 +334,14 @@ const TemplateClassic = ({ settings, qSettings, custObj, cart, subtotal, quotati
   </div>
 );
 
-const TemplateThermal = ({ settings, qSettings, custObj, cart, subtotal, quotationNo, notes, formatIDR }) => {
+const TemplateThermal = ({ settings, qSettings, custObj, cart, subtotal, taxPercent, taxAmount, grandTotal, quotationNo, notes, formatIDR }) => {
   const is80 = qSettings.thermalPaperWidth === '80mm';
   const w = is80 ? '80mm' : '58mm';
   const pad = is80 ? '6px 8px' : '4px 6px';
   const fs = is80 ? '12px' : '10px';
   const fsSmall = is80 ? '10px' : '8px';
   const fsBold = is80 ? '14px' : '11px';
+  const fsTitle = is80 ? '16px' : '12px';
   const dashLine = is80
     ? '------------------------------------------------'
     : '--------------------------------';
@@ -325,16 +361,20 @@ const TemplateThermal = ({ settings, qSettings, custObj, cart, subtotal, quotati
       lineHeight: '1.4',
     }}>
       {/* Store Header */}
-      <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-        <p style={{ fontSize: fsBold, fontWeight: '700', margin: 0 }}>{settings.storeName}</p>
-        <p style={{ fontSize: fsSmall, margin: 0 }}>{settings.storeAddress}</p>
-        <p style={{ fontSize: fsSmall, margin: '0 0 4px 0' }}>Tel: {settings.storePhone}</p>
+      <div style={{ textAlign: 'center', marginBottom: '6px' }}>
+        <h1 style={{ fontSize: fsTitle, fontWeight: '700', margin: '0 0 2px 0' }}>{settings.storeName}</h1>
+        {qSettings.showStoreAddress && <p style={{ fontSize: fsSmall, margin: '0 0 2px 0' }}>{settings.storeAddress}</p>}
+        {qSettings.showStorePhone && <p style={{ fontSize: fsSmall, margin: '0 0 2px 0' }}>Tel: {settings.storePhone}</p>}
+        {qSettings.showStoreEmail && <p style={{ fontSize: fsSmall, margin: '0 0 2px 0' }}>{settings.storeEmail}</p>}
+        {qSettings.showStoreWebsite && <p style={{ fontSize: fsSmall, margin: 0 }}>{settings.storeWebsite}</p>}
       </div>
-
-      <p style={{ margin: 0, textAlign: 'center', letterSpacing: '1px' }}>{dashLine}</p>
-
-      {/* Title */}
-      <p style={{ textAlign: 'center', fontWeight: '700', fontSize: fsBold, margin: '4px 0' }}>QUOTATION</p>
+      
+      <p style={{ margin: '4px 0' }}>{dashLine}</p>
+      
+      <div style={{ textAlign: 'center', margin: '4px 0' }}>
+        <p style={{ fontWeight: '700', fontSize: fsBold, margin: 0 }}>{qSettings.headerTitle || 'QUOTATION'}</p>
+        <p style={{ fontSize: fsSmall, margin: 0 }}>{qSettings.headerSubtitle || 'Penawaran Harga'}</p>
+      </div>
 
       <p style={{ margin: 0, textAlign: 'center' }}>{dashLine}</p>
 
@@ -372,9 +412,17 @@ const TemplateThermal = ({ settings, qSettings, custObj, cart, subtotal, quotati
       <p style={{ margin: '4px 0 0 0' }}>{dashLine}</p>
 
       {/* Total */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0', fontSize: fs }}>
+        <span>Subtotal</span><span>{formatIDR(subtotal)}</span>
+      </div>
+      {taxPercent > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '2px 0', fontSize: fs }}>
+          <span>PPN ({taxPercent}%)</span><span>{formatIDR(taxAmount)}</span>
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', margin: '4px 0', fontWeight: '700', fontSize: fsBold }}>
         <span>TOTAL</span>
-        <span>{formatIDR(subtotal)}</span>
+        <span>{formatIDR(grandTotal)}</span>
       </div>
 
       <p style={{ margin: 0 }}>{dashLine}</p>
@@ -453,6 +501,8 @@ const Quotation = () => {
   const [notes, setNotes] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [termsText, setTermsText] = useState('');
+  const [taxEnabled, setTaxEnabled] = useState(false);
+  const [taxPercent, setTaxPercent] = useState(11);
   
   const printRef = useRef(null);
   const qSettings = quotationSettings;
@@ -490,13 +540,15 @@ const Quotation = () => {
   const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
 
   const subtotal = cart.reduce((sum, item) => sum + (item.sellingPrice * item.qty), 0);
+  const taxAmount = taxEnabled ? Math.round(subtotal * taxPercent / 100) : 0;
+  const grandTotal = subtotal + taxAmount;
   const quotationNo = `QT-${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2, '0')}-${Math.floor(Math.random()*10000).toString().padStart(4, '0')}`;
 
   const handleSave = async () => {
     if (cart.length === 0 || !selectedCustomer) { alert('Keranjang kosong atau pelanggan belum dipilih!'); return; }
     setLoading(true);
     try {
-      await api.saveQuotation({ date: new Date().toISOString(), quoNo: quotationNo, customerId: selectedCustomer, items: cart, total: subtotal });
+      await api.saveQuotation({ date: new Date().toISOString(), quoNo: quotationNo, customerId: selectedCustomer, items: cart, total: grandTotal, taxPercent: taxEnabled ? taxPercent : 0, taxAmount });
       alert('Quotation berhasil disimpan!');
     } catch { alert('Gagal menyimpan quotation.'); }
     setLoading(false);
@@ -514,7 +566,7 @@ const Quotation = () => {
   const custObj = customers.find(c => c.phone === selectedCustomer) || {};
 
   const SelectedTemplate = TEMPLATES[qSettings.template]?.component || TemplateProfessional;
-  const templateProps = { settings, qSettings, custObj, cart, subtotal, quotationNo, notes, formatIDR };
+  const templateProps = { settings, qSettings, custObj, cart, subtotal, taxPercent: taxEnabled ? taxPercent : 0, taxAmount, grandTotal, quotationNo, notes, formatIDR };
 
   return (
     <>
@@ -633,8 +685,22 @@ const Quotation = () => {
                   <div className="flex justify-between items-center py-2 border-b border-gray-200 text-gray-600 text-sm">
                     <span>Subtotal</span><span>{formatIDR(subtotal)}</span>
                   </div>
+                  {/* Tax Toggle */}
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={taxEnabled} onChange={(e) => setTaxEnabled(e.target.checked)} className="accent-blue-600 w-3.5 h-3.5" />
+                      <span className="text-sm text-gray-600">PPN</span>
+                    </label>
+                    {taxEnabled && (
+                      <div className="flex items-center gap-1">
+                        <input type="number" min="0" max="100" value={taxPercent} onChange={(e) => setTaxPercent(Number(e.target.value))} className="w-12 px-1.5 py-0.5 border border-gray-300 rounded text-center text-xs font-bold outline-none" />
+                        <span className="text-xs text-gray-400">%</span>
+                        <span className="text-sm font-bold text-orange-600 ml-1">{formatIDR(taxAmount)}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex justify-between items-center py-3 text-lg md:text-xl font-bold text-white bg-blue-700 rounded-lg px-4 mt-2">
-                    <span>TOTAL</span><span>{formatIDR(subtotal)}</span>
+                    <span>TOTAL</span><span>{formatIDR(grandTotal)}</span>
                   </div>
                 </div>
               </div>
@@ -684,7 +750,46 @@ const Quotation = () => {
                 </div>
               )}
 
-              {/* Accent Color */}
+              {/* Header Texts */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Judul Dokumen:</label>
+                  <input type="text" value={qSettings.headerTitle || ''} onChange={e => updateQuotationSettings({ headerTitle: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="QUOTATION" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Sub-judul Dokumen:</label>
+                  <input type="text" value={qSettings.headerSubtitle || ''} onChange={e => updateQuotationSettings({ headerSubtitle: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Penawaran Harga" />
+                </div>
+              </div>
+
+              {/* Show Header Visibility */}
+              <div className="flex flex-col gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Tampilkan di Header:</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={qSettings.showLogo} onChange={e => updateQuotationSettings({ showLogo: e.target.checked })} className="accent-blue-600 w-4 h-4 shrink-0" />
+                    <span className="text-sm font-medium text-gray-700">Logo</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={qSettings.showStoreAddress} onChange={e => updateQuotationSettings({ showStoreAddress: e.target.checked })} className="accent-blue-600 w-4 h-4 shrink-0" />
+                    <span className="text-sm font-medium text-gray-700">Alamat</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={qSettings.showStorePhone} onChange={e => updateQuotationSettings({ showStorePhone: e.target.checked })} className="accent-blue-600 w-4 h-4 shrink-0" />
+                    <span className="text-sm font-medium text-gray-700">Telepon</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={qSettings.showStoreEmail} onChange={e => updateQuotationSettings({ showStoreEmail: e.target.checked })} className="accent-blue-600 w-4 h-4 shrink-0" />
+                    <span className="text-sm font-medium text-gray-700">Email</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={qSettings.showStoreWebsite} onChange={e => updateQuotationSettings({ showStoreWebsite: e.target.checked })} className="accent-blue-600 w-4 h-4 shrink-0" />
+                    <span className="text-sm font-medium text-gray-700">Website</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Accent Color and Validity */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Warna Aksen:</label>
@@ -699,11 +804,7 @@ const Quotation = () => {
                 </div>
               </div>
 
-              {/* Show Logo */}
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" checked={qSettings.showLogo} onChange={e => updateQuotationSettings({ showLogo: e.target.checked })} className="accent-blue-600 w-4 h-4" />
-                <span className="text-sm font-medium text-gray-700">Tampilkan logo toko di header</span>
-              </label>
+              {/* Settings End Here (Show Logo moved above) */}
 
               {/* Signatures */}
               <div className="grid grid-cols-2 gap-4">

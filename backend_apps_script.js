@@ -9,6 +9,8 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify(getCustomers())).setMimeType(ContentService.MimeType.JSON);
   } else if (action === "getQuotations") {
     return ContentService.createTextOutput(JSON.stringify(getQuotations())).setMimeType(ContentService.MimeType.JSON);
+  } else if (action === "getSuppliers") {
+    return ContentService.createTextOutput(JSON.stringify(getSuppliers())).setMimeType(ContentService.MimeType.JSON);
   }
   
   return ContentService.createTextOutput(JSON.stringify({ error: "Invalid action" })).setMimeType(ContentService.MimeType.JSON);
@@ -36,6 +38,12 @@ function doPost(e) {
       return response(deleteCustomer(data));
     } else if (action === "saveQuotation") {
       return response(saveQuotation(data));
+    } else if (action === "addSupplier") {
+      return response(addSupplier(data));
+    } else if (action === "editSupplier") {
+      return response(editSupplier(data));
+    } else if (action === "deleteSupplier") {
+      return response(deleteSupplier(data));
     } else if (action === "verifyLogin") {
       return response(verifyLogin(data));
     } else if (action === "registerUser") {
@@ -170,13 +178,17 @@ function saveTransaction(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
   
   sheet.appendRow([
-    data.date,                  // Date (ISO)
-    data.type || 'Penjualan',   // Penjualan / Pembelian
-    data.customerId || '',      // Customer ID / Phone / Name
-    JSON.stringify(data.items), // Items JSON
-    data.subtotal,              // Subtotal
-    data.payAmount,             // Pay Amount
-    data.change                 // Change
+    data.date,                   // Date (ISO)
+    data.type || 'Penjualan',    // Penjualan / Pembelian
+    data.customerId || '',       // Customer ID
+    data.customerName || '',     // Customer Name
+    data.supplierName || '',     // Supplier Name
+    data.paymentMethod || 'Cash',// Payment Method
+    data.receiptNo || '',        // Receipt Number
+    JSON.stringify(data.items),  // Items JSON
+    data.subtotal,               // Subtotal
+    data.payAmount,              // Pay Amount
+    data.change                  // Change
   ]);
   
   // Update Stock based on transaction type
@@ -311,4 +323,64 @@ function resetPassword(data) {
   }
   
   return { success: false, error: "Email tidak ditemukan di sistem" };
+}
+
+// ======================== SUPPLIERS ========================
+function getSuppliers() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Suppliers");
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  var suppliers = [];
+  
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0]) {
+      suppliers.push({
+        phone: data[i][0].toString(),
+        name: data[i][1] ? data[i][1].toString() : '',
+        company: data[i][2] ? data[i][2].toString() : '',
+        address: data[i][3] ? data[i][3].toString() : ''
+      });
+    }
+  }
+  return suppliers;
+}
+
+function addSupplier(data) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Suppliers");
+  if (!sheet) {
+    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Suppliers");
+    sheet.appendRow(["Phone", "Name", "Company", "Address"]);
+  }
+  sheet.appendRow([data.phone, data.name, data.company || '', data.address || '']);
+  return { success: true };
+}
+
+function editSupplier(data) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Suppliers");
+  if (!sheet) return { error: "Suppliers sheet not found" };
+  var rows = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0].toString() === data.phone) {
+      sheet.getRange(i + 1, 2).setValue(data.name);
+      sheet.getRange(i + 1, 3).setValue(data.company || '');
+      sheet.getRange(i + 1, 4).setValue(data.address || '');
+      return { success: true };
+    }
+  }
+  return { error: "Supplier not found" };
+}
+
+function deleteSupplier(data) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Suppliers");
+  if (!sheet) return { error: "Suppliers sheet not found" };
+  var rows = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0].toString() === data.phone) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  return { error: "Supplier not found" };
 }

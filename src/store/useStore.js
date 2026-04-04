@@ -14,6 +14,8 @@ const useStore = create(
         storeName: 'Toko Saya',
         storeAddress: 'Jl. Merdeka No. 123',
         storePhone: '081234567890',
+        storeEmail: 'info@tokosaya.com',
+        storeWebsite: 'www.tokosaya.com',
         currency: 'Rp',
         dateFormat: 'DD/MM/YYYY',
         theme: 'light',
@@ -37,6 +39,12 @@ const useStore = create(
         signatureLeftImage: '',  // base64 data URL
         signatureRightImage: '', // base64 data URL
         showLogo: true,
+        headerTitle: 'QUOTATION',
+        headerSubtitle: 'Penawaran Harga',
+        showStoreAddress: true,
+        showStorePhone: true,
+        showStoreEmail: false,
+        showStoreWebsite: false,
         accentColor: '#1e40af',
         footerText: '',
       },
@@ -67,10 +75,19 @@ const useStore = create(
         cart: state.cart.filter((item) => item.code !== code)
       })),
       clearCart: () => set({ cart: [] }),
+
+      // --- Role Permissions ---
+      rolePermissions: {
+        // Admin always has full access (handled in code, not here)
+        // This defines what 'User'/'Pegawai' role can access
+        userPermissions: ['dashboard', 'transaksi', 'stok', 'quotation'],
+      },
+      updateRolePermissions: (newPerms) =>
+        set((state) => ({ rolePermissions: { ...state.rolePermissions, ...newPerms } })),
     }),
     {
       name: 'kasir-storage', // name of the item in the storage (must be unique)
-      partialize: (state) => ({ user: state.user, settings: state.settings, quotationSettings: state.quotationSettings }),
+      partialize: (state) => ({ user: state.user, settings: state.settings, quotationSettings: state.quotationSettings, rolePermissions: state.rolePermissions }),
     }
   )
 );

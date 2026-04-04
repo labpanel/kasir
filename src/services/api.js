@@ -1,4 +1,4 @@
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZ9oVEbvCx89VpgLNggaYAYwvW00zv4DZsgFToUp-NnVvHZgycsudkMKzCIxo7e_Sh4Q/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby21J8foPUfY-R1WKqNwFB-UhBkdNNm1jSpOKpk_U955eF8hia4Z5G3lorzF43hA5e2/exec';
 
 // Set to true for local-only authentication and data management
 const MOCK_MODE = false;
@@ -112,5 +112,23 @@ export const api = {
   async saveQuotation(quotationData) {
     if (MOCK_MODE) return { success: true };
     return await request('saveQuotation', quotationData, 'POST');
+  },
+
+  // SUPPLIERS
+  async getSuppliers() {
+    if (MOCK_MODE) return [];
+    return await request('getSuppliers');
+  },
+  async addSupplier(data) {
+    if (MOCK_MODE) return { success: true };
+    return await request('addSupplier', data, 'POST');
+  },
+  async editSupplier(data) {
+    if (MOCK_MODE) return { success: true };
+    return await request('editSupplier', data, 'POST');
+  },
+  async deleteSupplier(phone) {
+    if (MOCK_MODE) return { success: true };
+    return await request('deleteSupplier', { phone }, 'POST');
   }
 };

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import useStore from '../store/useStore';
 import { api } from '../services/api';
-import { Search, Plus, Minus, Trash2, Printer, ShoppingCart, Package, X, Banknote, CreditCard, QrCode, FileText, Receipt } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Printer, ShoppingCart, Package, X, Banknote, CreditCard, QrCode, FileText, Receipt, LayoutGrid, List, Percent } from 'lucide-react';
 
 // =============================================
 // RECEIPT TEMPLATES
@@ -32,6 +32,7 @@ const ReceiptThermal = ({ data, settings, formatIDR }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Tgl:</span><span>{new Date(data.date).toLocaleString('id-ID')}</span></div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Bayar:</span><span>{data.paymentMethod}</span></div>
         {data.customerName && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Plg:</span><span>{data.customerName}</span></div>}
+        {data.supplierName && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Supplier:</span><span>{data.supplierName}</span></div>}
       </div>
       <p style={{ margin: 0 }}>{dash}</p>
       {data.items.map((item, idx) => (
@@ -44,8 +45,16 @@ const ReceiptThermal = ({ data, settings, formatIDR }) => {
         </div>
       ))}
       <p style={{ margin: '3px 0 0 0' }}>{dash}</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: fs, margin: '1px 0' }}>
+        <span>Subtotal</span><span>{formatIDR(data.subtotal)}</span>
+      </div>
+      {data.taxPercent > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: fs, margin: '1px 0' }}>
+          <span>PPN ({data.taxPercent}%)</span><span>{formatIDR(data.taxAmount)}</span>
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: fsBold, margin: '3px 0' }}>
-        <span>TOTAL</span><span>{formatIDR(data.subtotal)}</span>
+        <span>TOTAL</span><span>{formatIDR(data.grandTotal)}</span>
       </div>
       {data.paymentMethod === 'Cash' && (
         <>
@@ -90,8 +99,8 @@ const ReceiptA4 = ({ data, settings, formatIDR }) => (
     {/* Meta */}
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '28px', gap: '24px' }}>
       <div style={{ flex: 1, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-        <h4 style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 8px 0' }}>Pelanggan</h4>
-        <p style={{ fontWeight: '700', fontSize: '15px', margin: '0 0 2px 0' }}>{data.customerName || 'Umum'}</p>
+        <h4 style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 8px 0' }}>{data.supplierName ? 'Supplier' : 'Pelanggan'}</h4>
+        <p style={{ fontWeight: '700', fontSize: '15px', margin: '0 0 2px 0' }}>{data.supplierName || data.customerName || 'Umum'}</p>
       </div>
       <div style={{ width: '220px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
         <div style={{ marginBottom: '8px' }}>
@@ -140,9 +149,14 @@ const ReceiptA4 = ({ data, settings, formatIDR }) => (
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e2e8f0', fontSize: '14px', color: '#475569' }}>
           <span>Subtotal</span><span>{formatIDR(data.subtotal)}</span>
         </div>
+        {data.taxPercent > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e2e8f0', fontSize: '14px', color: '#475569' }}>
+            <span>PPN ({data.taxPercent}%)</span><span>{formatIDR(data.taxAmount)}</span>
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: '#1e40af', borderRadius: '8px', marginTop: '8px' }}>
           <span style={{ fontWeight: '800', fontSize: '16px', color: 'white' }}>TOTAL</span>
-          <span style={{ fontWeight: '800', fontSize: '16px', color: 'white' }}>{formatIDR(data.subtotal)}</span>
+          <span style={{ fontWeight: '800', fontSize: '16px', color: 'white' }}>{formatIDR(data.grandTotal)}</span>
         </div>
         {data.paymentMethod === 'Cash' && (
           <>
@@ -179,15 +193,20 @@ const Transaksi = () => {
   const { cart, addToCart, updateCartItemQty, removeFromCart, clearCart, settings } = useStore();
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
-  
+  const [suppliers, setSuppliers] = useState([]);
+
   const [searchCode, setSearchCode] = useState('');
   const [payAmount, setPayAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const [transactionType, setTransactionType] = useState('Penjualan');
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const [viewMode, setViewMode] = useState('grid');
+  const [selectedSupplier, setSelectedSupplier] = useState('');
+  const [taxEnabled, setTaxEnabled] = useState(false);
+  const [taxPercent, setTaxPercent] = useState(11);
 
   // Receipt state
   const [showReceipt, setShowReceipt] = useState(false);
@@ -196,9 +215,10 @@ const Transaksi = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const [prods, custs] = await Promise.all([api.getProducts(), api.getCustomers()]);
+      const [prods, custs, sups] = await Promise.all([api.getProducts(), api.getCustomers(), api.getSuppliers()]);
       setProducts(prods || []);
       setCustomers(custs || []);
+      setSuppliers(sups || []);
     };
     loadData();
   }, []);
@@ -210,8 +230,8 @@ const Transaksi = () => {
     else { alert('Produk tidak ditemukan!'); }
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredProducts = products.filter(p =>
+    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -220,11 +240,13 @@ const Transaksi = () => {
 
   const calculatePrice = (item) => transactionType === 'Penjualan' ? item.sellingPrice : item.purchasePrice;
   const subtotal = cart.reduce((sum, item) => sum + (calculatePrice(item) * item.qty), 0);
-  const change = Math.max(0, Number(payAmount || 0) - subtotal);
+  const taxAmount = taxEnabled ? Math.round(subtotal * taxPercent / 100) : 0;
+  const grandTotal = subtotal + taxAmount;
+  const change = Math.max(0, Number(payAmount || 0) - grandTotal);
 
   const generateReceiptNo = () => {
     const d = new Date();
-    return `INV-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${Math.floor(Math.random()*10000).toString().padStart(4,'0')}`;
+    return `INV-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
   };
 
   const handleProcessTransaction = async () => {
@@ -237,15 +259,18 @@ const Transaksi = () => {
     setLoading(true);
     try {
       const custObj = customers.find(c => c.phone === selectedCustomer);
-      const actualPayAmount = paymentMethod === 'Cash' ? Number(payAmount) : subtotal;
-      const actualChange = paymentMethod === 'Cash' ? Math.max(0, actualPayAmount - subtotal) : 0;
+      const supObj = suppliers.find(s => s.phone === selectedSupplier);
+      const actualPayAmount = paymentMethod === 'Cash' ? Number(payAmount) : grandTotal;
+      const actualChange = paymentMethod === 'Cash' ? Math.max(0, actualPayAmount - grandTotal) : 0;
 
       const data = {
         date: new Date().toISOString(),
         type: transactionType,
         paymentMethod,
-        customerId: selectedCustomer,
-        customerName: custObj?.name || '',
+        customerId: transactionType === 'Penjualan' ? selectedCustomer : '',
+        customerName: transactionType === 'Penjualan' ? (custObj?.name || '') : '',
+        supplierId: transactionType === 'Pembelian' ? selectedSupplier : '',
+        supplierName: transactionType === 'Pembelian' ? (supObj?.name || selectedSupplier) : '',
         receiptNo: generateReceiptNo(),
         items: cart.map(item => ({
           code: item.code,
@@ -254,18 +279,26 @@ const Transaksi = () => {
           price: calculatePrice(item)
         })),
         subtotal,
+        taxPercent: taxEnabled ? taxPercent : 0,
+        taxAmount,
+        grandTotal,
         payAmount: actualPayAmount,
         change: actualChange
       };
       await api.saveTransaction(data);
-      
+
       // Store receipt data and show print dialog
+      // Auto-select thermal on mobile if settings allow
+      if (window.innerWidth < 768 && settings.autoThermalMobile !== false) {
+        setReceiptFormat('thermal');
+      }
       setReceiptData(data);
       setShowReceipt(true);
-      
+
       clearCart();
       setPayAmount('');
       setSelectedCustomer('');
+      setSelectedSupplier('');
     } catch (err) {
       alert('Gagal memproses transaksi');
     } finally {
@@ -282,78 +315,101 @@ const Transaksi = () => {
     setReceiptData(null);
   };
 
-  const canProcess = paymentMethod === 'Cash' 
-    ? cart.length > 0 && Number(payAmount) >= subtotal 
+  const canProcess = paymentMethod === 'Cash'
+    ? cart.length > 0 && Number(payAmount) >= subtotal
     : cart.length > 0;
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 h-[calc(100vh-7rem)] print:hidden">
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 lg:h-[calc(100vh-7rem)] print:hidden">
         {/* Product List Panel */}
-        <div className="flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[35vh] lg:min-h-0">
           <div className="p-3 md:p-4 border-b border-gray-100 space-y-3">
             <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-fit">
-              <button 
+              <button
                 onClick={() => setTransactionType('Penjualan')}
                 className={`px-3 md:px-4 py-2 text-sm font-bold rounded-md transition ${transactionType === 'Penjualan' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 Penjualan
               </button>
-              <button 
+              <button
                 onClick={() => setTransactionType('Pembelian')}
                 className={`px-3 md:px-4 py-2 text-sm font-bold rounded-md transition ${transactionType === 'Pembelian' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 Pembelian
               </button>
             </div>
-            <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Cari produk..." 
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input type="text" placeholder="Cari produk..." className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              </div>
+              <div className="flex bg-gray-100 rounded-xl p-1 shrink-0">
+                <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition ${viewMode === 'grid' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}><LayoutGrid className="w-5 h-5" /></button>
+                <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition ${viewMode === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}><List className="w-5 h-5" /></button>
+              </div>
             </div>
           </div>
-          <div className="p-3 md:p-4 flex-1 overflow-y-auto">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {filteredProducts.map(prod => (
-                <div 
-                  key={prod.code} 
-                  onClick={() => addToCart(prod)}
-                  className="border border-gray-100 rounded-xl p-3 hover:border-blue-500 hover:shadow-md cursor-pointer transition-all flex flex-col items-center text-center group"
-                >
-                  <div className="w-10 h-10 bg-blue-50 rounded-full mb-2 flex items-center justify-center text-blue-400 group-hover:bg-blue-100 group-hover:text-blue-600">
-                    <Package className="w-5 h-5" />
+          <div className="p-3 md:p-4 flex-1 overflow-y-auto max-h-[30vh] lg:max-h-none">
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {filteredProducts.map(prod => (
+                  <div key={prod.code} onClick={() => addToCart(prod)} className="border border-gray-100 rounded-xl p-3 hover:border-blue-500 hover:shadow-md cursor-pointer transition-all flex flex-col items-center text-center group">
+                    <div className="w-10 h-10 bg-blue-50 rounded-full mb-2 flex items-center justify-center text-blue-400 group-hover:bg-blue-100 group-hover:text-blue-600"><Package className="w-5 h-5" /></div>
+                    <h4 className="font-semibold text-gray-800 text-xs line-clamp-2 mb-1">{prod.name}</h4>
+                    <p className="text-gray-500 text-xs mb-1">Stok: {prod.stock}</p>
+                    <p className="text-blue-600 font-bold text-xs mt-auto">{formatIDR(transactionType === 'Penjualan' ? prod.sellingPrice : prod.purchasePrice)}</p>
                   </div>
-                  <h4 className="font-semibold text-gray-800 text-xs line-clamp-2 mb-1">{prod.name}</h4>
-                  <p className="text-gray-500 text-xs mb-1">Stok: {prod.stock}</p>
-                  <p className="text-blue-600 font-bold text-xs mt-auto">
-                    {formatIDR(transactionType === 'Penjualan' ? prod.sellingPrice : prod.purchasePrice)}
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-xs uppercase tracking-wider">
+                      <th className="px-4 py-3 font-medium">Nama Barang</th>
+                      <th className="px-4 py-3 font-medium text-center w-20">Stok</th>
+                      <th className="px-4 py-3 font-medium text-right w-28">Harga</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredProducts.map(prod => (
+                      <tr key={prod.code} onClick={() => addToCart(prod)} className="hover:bg-blue-50 cursor-pointer transition-colors text-sm">
+                        <td className="px-4 py-2.5 font-medium text-gray-800">{prod.name}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          <span className={`px-2 py-0.5 rounded font-bold text-xs ${prod.stock > 10 ? 'bg-green-100 text-green-700' : prod.stock > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>{prod.stock}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-bold text-blue-600 text-sm">{formatIDR(transactionType === 'Penjualan' ? prod.sellingPrice : prod.purchasePrice)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Cart & Payment Panel */}
         <div className="w-full lg:w-[400px] flex flex-col gap-3">
-          {/* Customer */}
+          {/* Customer / Supplier */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Pelanggan</label>
-            <select 
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 text-sm"
-              value={selectedCustomer}
-              onChange={(e) => setSelectedCustomer(e.target.value)}
-            >
-              <option value="">-- Opsional --</option>
-              {customers.map(c => (
-                <option key={c.phone} value={c.phone}>{c.name} ({c.phone})</option>
-              ))}
-            </select>
+            {transactionType === 'Penjualan' ? (
+              <>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Pelanggan</label>
+                <select className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 text-sm" value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)}>
+                  <option value="">-- Opsional --</option>
+                  {customers.map(c => (<option key={c.phone} value={c.phone}>{c.name} ({c.phone})</option>))}
+                </select>
+              </>
+            ) : (
+              <>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Supplier / Pemasok</label>
+                <select className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 text-sm" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)}>
+                  <option value="">-- Pilih Supplier --</option>
+                  {suppliers.map(s => (<option key={s.phone} value={s.phone}>{s.name}{s.company ? ` (${s.company})` : ''}</option>))}
+                </select>
+              </>
+            )}
           </div>
 
           {/* Cart */}
@@ -400,10 +456,32 @@ const Transaksi = () => {
 
             {/* Payment Section */}
             <div className="p-4 border-t border-gray-100 bg-gray-50 shrink-0 space-y-3">
-              {/* Total */}
-              <div className="flex justify-between text-lg font-bold text-gray-900 border-b border-dashed border-gray-300 pb-2">
+              {/* Subtotal */}
+              <div className="flex justify-between text-sm text-gray-600 pb-1">
+                <span>Subtotal</span>
+                <span>{formatIDR(subtotal)}</span>
+              </div>
+
+              {/* Tax Toggle */}
+              <div className="flex items-center justify-between gap-2 py-2 border-b border-dashed border-gray-300">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={taxEnabled} onChange={(e) => setTaxEnabled(e.target.checked)} className="accent-blue-600 w-4 h-4" />
+                  <Percent className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">PPN</span>
+                </label>
+                {taxEnabled && (
+                  <div className="flex items-center gap-1">
+                    <input type="number" min="0" max="100" value={taxPercent} onChange={(e) => setTaxPercent(Number(e.target.value))} className="w-14 px-2 py-1 border border-gray-300 rounded-lg text-center text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
+                    <span className="text-xs text-gray-500">%</span>
+                    <span className="text-sm font-bold text-orange-600 ml-2">{formatIDR(taxAmount)}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Grand Total */}
+              <div className="flex justify-between text-lg font-bold text-gray-900 pt-1">
                 <span>Total</span>
-                <span className="text-blue-600">{formatIDR(subtotal)}</span>
+                <span className="text-blue-600">{formatIDR(grandTotal)}</span>
               </div>
 
               {/* Payment Method */}
@@ -437,8 +515,8 @@ const Transaksi = () => {
                 <div className="space-y-2">
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">DIBAYAR</label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl font-bold text-lg focus:ring-2 focus:ring-blue-500 outline-none text-right"
                       value={payAmount}
                       onChange={(e) => setPayAmount(e.target.value)}
@@ -458,7 +536,7 @@ const Transaksi = () => {
                   <CreditCard className="w-8 h-8 mx-auto text-blue-500 mb-1" />
                   <p className="text-sm font-bold text-blue-800">Transfer Bank</p>
                   <p className="text-xs text-blue-600">Pastikan pembayaran sudah diterima</p>
-                  <p className="text-lg font-bold text-blue-900 mt-1">{formatIDR(subtotal)}</p>
+                  <p className="text-lg font-bold text-blue-900 mt-1">{formatIDR(grandTotal)}</p>
                 </div>
               )}
               {paymentMethod === 'QRIS' && (
@@ -466,19 +544,19 @@ const Transaksi = () => {
                   <QrCode className="w-8 h-8 mx-auto text-purple-500 mb-1" />
                   <p className="text-sm font-bold text-purple-800">QRIS</p>
                   <p className="text-xs text-purple-600">Scan QR atau pastikan pembayaran diterima</p>
-                  <p className="text-lg font-bold text-purple-900 mt-1">{formatIDR(subtotal)}</p>
+                  <p className="text-lg font-bold text-purple-900 mt-1">{formatIDR(grandTotal)}</p>
                 </div>
               )}
 
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-3 pt-1">
-                <button 
+                <button
                   onClick={clearCart}
                   className="py-3 border border-red-200 text-red-600 hover:bg-red-50 font-bold rounded-xl flex items-center justify-center gap-2 transition text-sm"
                 >
                   <Trash2 className="w-4 h-4" /> Batal
                 </button>
-                <button 
+                <button
                   disabled={loading || !canProcess}
                   onClick={handleProcessTransaction}
                   className="py-3 bg-blue-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition text-sm"
@@ -561,7 +639,7 @@ const Transaksi = () => {
       {/* PRINT-ONLY VIEW (portal to body) */}
       {receiptData && createPortal(
         <div id="print-area" className="hidden print:block">
-          {receiptFormat === 'thermal' 
+          {receiptFormat === 'thermal'
             ? <ReceiptThermal data={receiptData} settings={settings} formatIDR={formatIDR} />
             : <ReceiptA4 data={receiptData} settings={settings} formatIDR={formatIDR} />
           }

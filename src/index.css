@@ -20,13 +20,47 @@
     color: var(--foreground);
     @apply antialiased min-h-screen font-sans;
   }
+
+  .dark {
+    /* Global Backgrounds & Grays */
+    --color-white: #0f172a;
+    --color-gray-50: #1e293b;
+    --color-gray-100: #334155;
+    --color-gray-200: #475569;
+    --color-gray-300: #64748b;
+    --color-gray-400: #94a3b8;
+    --color-gray-500: #cbd5e1;
+    --color-gray-600: #e2e8f0;
+    --color-gray-700: #f1f5f9;
+    --color-gray-800: #f8fafc;
+    --color-gray-900: #ffffff;
+    
+    /* Map text borders appropriately */
+    --background: #0f172a;
+    --foreground: #f8fafc;
+
+    /* Transparent tints for accents */
+    --color-blue-50: rgba(59, 130, 246, 0.15);
+    --color-blue-100: rgba(59, 130, 246, 0.25);
+    --color-green-50: rgba(34, 197, 94, 0.15);
+    --color-green-100: rgba(34, 197, 94, 0.25);
+    --color-red-50: rgba(239, 68, 68, 0.15);
+    --color-red-100: rgba(239, 68, 68, 0.25);
+    --color-orange-50: rgba(249, 115, 22, 0.15);
+    --color-orange-100: rgba(249, 115, 22, 0.25);
+    --color-amber-50: rgba(245, 158, 11, 0.15);
+    --color-amber-100: rgba(245, 158, 11, 0.25);
+    --color-indigo-50: rgba(99, 102, 241, 0.15);
+    --color-indigo-100: rgba(99, 102, 241, 0.25);
+  }
 }
 
 /* Print styles for Quotation PDF */
 @media print {
   /* Reset page */
-  html, body {
+  html, body, .dark {
     background: white !important;
+    color: black !important;
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
@@ -34,6 +68,21 @@
     overflow: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    
+    /* Reset Dark variables back to Light for printing */
+    --color-white: #ffffff;
+    --color-gray-50: #f9fafb;
+    --color-gray-100: #f3f4f6;
+    --color-gray-200: #e5e7eb;
+    --color-gray-300: #d1d5db;
+    --color-gray-400: #9ca3af;
+    --color-gray-500: #6b7280;
+    --color-gray-600: #4b5563;
+    --color-gray-700: #374151;
+    --color-gray-800: #1f2937;
+    --color-gray-900: #111827;
+    --background: var(--color-base-200);
+    --foreground: var(--color-base-content);
   }
 
   /* Hide the entire app (sidebar, navbar, everything) */

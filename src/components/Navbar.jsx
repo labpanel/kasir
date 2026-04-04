@@ -1,8 +1,9 @@
-import { LogOut, User, Menu } from 'lucide-react';
+import { LogOut, User, Menu, Moon, Sun } from 'lucide-react';
 import useStore from '../store/useStore';
 
 const Navbar = ({ onMenuToggle }) => {
-  const { user, logout } = useStore();
+  const { user, logout, settings, updateSettings } = useStore();
+  const toggleTheme = () => updateSettings({ theme: settings.theme === 'dark' ? 'light' : 'dark' });
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 transition-colors duration-300">
@@ -29,6 +30,13 @@ const Navbar = ({ onMenuToggle }) => {
         <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold border-2 border-white shadow-sm ring-2 ring-gray-100">
           <User className="w-5 h-5" />
         </div>
+        <button
+          onClick={toggleTheme}
+          className="ml-1 w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
+          title="Ubah Tema"
+        >
+          {settings.theme === 'dark' ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5" />}
+        </button>
         <button
           onClick={logout}
           className="ml-1 w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"

@@ -1,20 +1,29 @@
-import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, FileText, LayoutDashboard, ShoppingCart, Package, BarChart2, Settings, X } from 'lucide-react';
+import { Users, FileText, LayoutDashboard, ShoppingCart, Package, BarChart2, Settings, X, Truck } from 'lucide-react';
 import useStore from '../store/useStore';
 
-const Sidebar = ({ isOpen, onClose }) => {
-  const { settings } = useStore();
+// All nav items with their permission keys
+const ALL_NAV_ITEMS = [
+  { name: 'Dashboard', path: '/', icon: LayoutDashboard, key: 'dashboard' },
+  { name: 'Transaksi', path: '/transaksi', icon: ShoppingCart, key: 'transaksi' },
+  { name: 'Stok Barang', path: '/stok', icon: Package, key: 'stok' },
+  { name: 'Pelanggan', path: '/pelanggan', icon: Users, key: 'pelanggan' },
+  { name: 'Supplier', path: '/supplier', icon: Truck, key: 'supplier' },
+  { name: 'Quotation', path: '/quotation', icon: FileText, key: 'quotation' },
+  { name: 'Laporan', path: '/laporan', icon: BarChart2, key: 'laporan' },
+  { name: 'Pengaturan', path: '/pengaturan', icon: Settings, key: 'pengaturan' },
+];
 
-  const navItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Transaksi', path: '/transaksi', icon: ShoppingCart },
-    { name: 'Stok Barang', path: '/stok', icon: Package },
-    { name: 'Pelanggan', path: '/pelanggan', icon: Users },
-    { name: 'Quotation', path: '/quotation', icon: FileText },
-    { name: 'Laporan', path: '/laporan', icon: BarChart2 },
-    { name: 'Pengaturan', path: '/pengaturan', icon: Settings },
-  ];
+const Sidebar = ({ isOpen, onClose }) => {
+  const { settings, user, rolePermissions } = useStore();
+
+  const isAdmin = user?.role === 'Admin';
+  const userPerms = rolePermissions?.userPermissions || [];
+
+  // Admin sees all, User/Pegawai sees only permitted items
+  const navItems = isAdmin
+    ? ALL_NAV_ITEMS
+    : ALL_NAV_ITEMS.filter(item => userPerms.includes(item.key));
 
   return (
     <>
@@ -68,8 +77,8 @@ const Sidebar = ({ isOpen, onClose }) => {
         
         <div className="p-4 border-t border-gray-200 shrink-0">
           <div className="bg-blue-50 rounded-xl p-4">
-            <h4 className="text-sm font-semibold text-blue-900">Bantuan</h4>
-            <p className="text-xs text-blue-700 mt-1">Hubungi support jika kendala</p>
+            <h4 className="text-sm font-semibold text-blue-900">{user?.name || 'User'}</h4>
+            <p className="text-xs text-blue-700 mt-1">{user?.role || 'Guest'}</p>
           </div>
         </div>
       </div>

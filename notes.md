@@ -65,6 +65,15 @@ Data akun untuk login aplikasi.
 | C | `Role` | `Admin` |
 | D | `Name` | `Administrator` |
 
+#### 🟣 Sheet: `Suppliers` *(BARU)*
+Data pemasok / supplier barang.
+| Kolom | Header (Baris 1) | Contoh Data (Baris 2) |
+|---|---|---|
+| A | `Phone` | `08123456789` |
+| B | `Name` | `Budi Supplier` |
+| C | `Company` | `PT Maju Jaya` |
+| D | `Address` | `Jl. Industri No. 10` |
+
 ---
 
 ### 3. Pasang Google Apps Script
@@ -73,12 +82,99 @@ Data akun untuk login aplikasi.
 3. Copy-paste isi file `backend_apps_script.js` ke Apps Script.
 4. Klik **Save** (Disket).
 
+> **PENTING**: Jika sebelumnya sudah ada script yang berjalan, Anda cukup **menambahkan handler baru** ke bagian `doPost()` dan fungsi bantu di bawahnya. Lihat section berikut.
+
+### 3b. Kode Handler Supplier (tambahkan ke Apps Script)
+
+Tambahkan case-case berikut ke dalam fungsi `doPost()` Anda:
+
+```javascript
+// =============================================
+// TAMBAHKAN DI DALAM switch(action) di doPost()
+// =============================================
+
+case 'getSuppliers':
+  return jsonResponse(getSuppliers());
+
+case 'addSupplier':
+  return jsonResponse(addSupplier(data));
+
+case 'editSupplier':
+  return jsonResponse(editSupplier(data));
+
+case 'deleteSupplier':
+  return jsonResponse(deleteSupplier(data));
+```
+
+Lalu tambahkan fungsi-fungsi ini di bawah (di luar doPost):
+
+```javascript
+// =============================================
+// SUPPLIERS CRUD
+// =============================================
+
+function getSuppliers() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Suppliers');
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var result = [];
+  for (var i = 1; i < data.length; i++) {
+    result.push({
+      phone: data[i][0],
+      name: data[i][1],
+      company: data[i][2] || '',
+      address: data[i][3] || ''
+    });
+  }
+  return result;
+}
+
+function addSupplier(d) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Suppliers');
+  if (!sheet) {
+    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet('Suppliers');
+    sheet.appendRow(['Phone', 'Name', 'Company', 'Address']);
+  }
+  sheet.appendRow([d.phone, d.name, d.company || '', d.address || '']);
+  return { success: true };
+}
+
+function editSupplier(d) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Suppliers');
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] == d.phone) {
+      sheet.getRange(i + 1, 2).setValue(d.name);
+      sheet.getRange(i + 1, 3).setValue(d.company || '');
+      sheet.getRange(i + 1, 4).setValue(d.address || '');
+      return { success: true };
+    }
+  }
+  return { success: false, error: 'Supplier not found' };
+}
+
+function deleteSupplier(d) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Suppliers');
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] == d.phone) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  return { success: false, error: 'Supplier not found' };
+}
+```
+
 ### 4. Deployment
 1. Klik **Deploy** -> **New Deployment**.
 2. Pilih Type: **Web App**.
 3. **Execute as**: `Me`.
 4. **Who has access**: **Anyone** (Wajib).
 5. Copy **Web App URL** yang didapat.
+
+> ⚠️ **Setiap kali menambah/mengubah kode Apps Script, HARUS buat New Deployment baru!** Edit deployment lama tidak akan memperbarui kode.
 
 ---
 
@@ -106,3 +202,4 @@ Pastikan di `src/services/api.js`:
 const SCRIPT_URL = 'URL_HASIL_DEPLOY_APPS_SCRIPT_DI_SINI';
 const MOCK_MODE = false;
 ```
+
