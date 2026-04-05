@@ -1,4 +1,4 @@
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5JOhmvv2MC_m1Kn2Pfo3c0T2P0CW0lLPn4B62FHj734LzcsbrfEv5Pcudox0y9-g3HQ/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwb-QvZTDrQpKMi5wbHqVwVUrviwER2CqyZ7YqiUzqwWhjdJ_trBzLtoB44erNiO6IZgg/exec';
 
 // Set to true for local-only authentication and data management
 const MOCK_MODE = false;
