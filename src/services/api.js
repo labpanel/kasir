@@ -1,9 +1,12 @@
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzALXd7sS19iVr683vvHmlULv3FXjzEyzg7D2718c48iVm7v13-TadppHe7dHxwhFTsrw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0PicuZ5jMf62BiFAQAP6qX6CiKrOWY5V-YH7iQRG3x7U5xO-upsRy9CvZsnzlyG86QA/exec';
 
 // Set to true for local-only authentication and data management
 const MOCK_MODE = false;
 
+import useStore from '../store/useStore';
+
 const request = async (action, data = null, method = 'GET') => {
+  const setApiError = useStore.getState().setApiError;
   console.log(`[API Request] ${action}`, data);
   try {
     let url = SCRIPT_URL;
@@ -11,6 +14,11 @@ const request = async (action, data = null, method = 'GET') => {
 
     if (method === 'GET') {
       url += `?action=${action}`;
+      if (data) {
+        Object.keys(data).forEach(key => {
+          url += `&${key}=${encodeURIComponent(data[key])}`;
+        });
+      }
     } else {
       // Use text/plain to avoid CORS preflight (OPTIONS request) which GAS doPost doesn't handle well
       options.body = JSON.stringify({ action, data });
@@ -21,9 +29,13 @@ const request = async (action, data = null, method = 'GET') => {
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const result = await res.json();
     console.log(`[API Response] ${action}`, result);
+    setApiError(null); // Clear error on success
     return result;
   } catch (err) {
     console.error(`[API Error] ${action}`, err);
+    if (err.message.includes('fetch')) {
+      setApiError('Gagal terhubung ke Google Sheets. Pastikan Deployment Apps Script sudah "Anyone".');
+    }
     throw err;
   }
 };

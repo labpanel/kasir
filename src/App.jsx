@@ -15,15 +15,48 @@ import Riwayat from './pages/Riwayat';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import useStore from './store/useStore';
+import api from './services/api';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { apiError, setApiError } = useStore();
+
+  const checkConnection = async () => {
+    try {
+      await api.getProducts();
+      setApiError(null);
+    } catch (err) {
+      if (err.message.includes('fetch')) {
+        setApiError('Gagal terhubung ke Google Sheets. Silakan cek koneksi internet atau pengaturan Deployment Apps Script Anda.');
+      } else {
+        setApiError(err.message);
+      }
+    }
+  };
 
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Navbar onMenuToggle={() => setSidebarOpen(prev => !prev)} />
+        
+        {/* Connection Error Banner */}
+        {apiError && (
+          <div className="bg-red-600 text-white px-4 py-2 flex items-center justify-between text-sm animate-pulse-slow">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={16} />
+              <span>{apiError} <strong>(Pastikan Who has access = "Anyone")</strong></span>
+            </div>
+            <button 
+              onClick={checkConnection}
+              className="bg-white text-red-600 px-3 py-1 rounded-full font-bold flex items-center gap-1 hover:bg-gray-100 transition-colors"
+            >
+              <RefreshCw size={12} /> Cek Lagi
+            </button>
+          </div>
+        )}
+
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-3 md:p-6">
           {children}
         </main>

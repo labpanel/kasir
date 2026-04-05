@@ -84,6 +84,10 @@ const useStore = create(
       },
       updateRolePermissions: (newPerms) =>
         set((state) => ({ rolePermissions: { ...state.rolePermissions, ...newPerms } })),
+
+      // --- API Error State ---
+      apiError: null,
+      setApiError: (error) => set({ apiError: error }),
     }),
     {
       name: 'kasir-storage', // name of the item in the storage (must be unique)

@@ -83,7 +83,9 @@ function getProducts() {
         category: data[i][2] ? data[i][2].toString() : '',
         purchasePrice: Number(data[i][3]) || 0,
         sellingPrice: Number(data[i][4]) || 0,
-        stock: Number(data[i][5]) || 0
+        stock: Number(data[i][5]) || 0,
+        minStock: Number(data[i][6]) || 0,
+        unit: data[i][7] ? data[i][7].toString() : 'Pcs'
       });
     }
   }
@@ -92,7 +94,7 @@ function getProducts() {
 
 function addProduct(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Products");
-  sheet.appendRow([data.code, data.name, data.category, data.purchasePrice, data.sellingPrice, data.stock]);
+  sheet.appendRow([data.code, data.name, data.category, data.purchasePrice, data.sellingPrice, data.stock, data.minStock || 0, data.unit || 'Pcs']);
   return { success: true };
 }
 
@@ -139,7 +141,8 @@ function getCustomers() {
       customers.push({
         phone: data[i][0].toString(),
         name: data[i][1] ? data[i][1].toString() : '',
-        address: data[i][2] ? data[i][2].toString() : ''
+        address: data[i][2] ? data[i][2].toString() : '',
+        points: Number(data[i][3]) || 0
       });
     }
   }
@@ -148,7 +151,7 @@ function getCustomers() {
 
 function addCustomer(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Customers");
-  sheet.appendRow([data.phone, data.name, data.address]);
+  sheet.appendRow([data.phone, data.name, data.address, data.points || 0]);
   return { success: true };
 }
 
@@ -160,6 +163,7 @@ function editCustomer(data) {
     if (rows[i][0].toString() === data.phone) {
       sheet.getRange(i + 1, 2).setValue(data.name);
       sheet.getRange(i + 1, 3).setValue(data.address);
+      sheet.getRange(i + 1, 4).setValue(data.points || 0);
       return { success: true };
     }
   }
@@ -184,22 +188,19 @@ function saveTransaction(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
 
   sheet.appendRow([
-    data.date,                   // Date (ISO)
-    data.type || 'Penjualan',    // Penjualan / Pembelian
-    data.customerId || '',       // Customer ID
-    data.customerName || '',     // Customer Name
-    data.supplierName || '',     // Supplier Name
-    data.paymentMethod || 'Cash',// Payment Method
-    data.receiptNo || '',        // Receipt Number
-    JSON.stringify(data.items),  // Items JSON
+    data.date,                   // Date
+    data.receiptNo,              // ReceiptNo
+    data.type || 'Penjualan',    // Type
+    data.paymentMethod || 'Cash',// PaymentMethod
+    data.customerId || '',       // CustomerId
+    data.customerName || '',     // CustomerName
+    JSON.stringify(data.items),  // ItemsJson
     data.subtotal,               // Subtotal
-    data.payAmount,              // Pay Amount
-    data.change                  // Change
+    data.taxAmount || 0,         // TaxAmount
+    data.grandTotal              // GrandTotal
   ]);
 
-  // Update Stock based on transaction type
   updateStock(data.items, data.type || 'Penjualan');
-
   return { success: true };
 }
 
@@ -212,10 +213,8 @@ function updateStock(purchasedItems, type) {
     var item = purchasedItems.find(p => p.code === rowCode);
 
     if (item) {
-      var currentStock = Number(data[i][5]) || 0; // Column index 5 (F) is Stock
+      var currentStock = Number(data[i][5]) || 0; // Col F
       var isSale = (type && type.toLowerCase() === 'penjualan');
-
-      // If sale, subtract qty. If purchase, add qty.
       var newStock = isSale ? (currentStock - item.qty) : (currentStock + item.qty);
       sheet.getRange(i + 1, 6).setValue(newStock);
     }
@@ -232,21 +231,19 @@ function getTransactions() {
     if (data[i][0]) {
       transactions.push({
         date: data[i][0].toString(),
-        type: data[i][1] ? data[i][1].toString() : 'Penjualan',
-        customerId: data[i][2] ? data[i][2].toString() : '',
-        customerName: data[i][3] ? data[i][3].toString() : '',
-        supplierName: data[i][4] ? data[i][4].toString() : '',
-        paymentMethod: data[i][5] ? data[i][5].toString() : 'Cash',
-        receiptNo: data[i][6] ? data[i][6].toString() : '',
-        items: data[i][7] ? data[i][7].toString() : '[]',
-        subtotal: Number(data[i][8]) || 0,
-        payAmount: Number(data[i][9]) || 0,
-        change: Number(data[i][10]) || 0
+        receiptNo: data[i][1].toString(),
+        type: data[i][2] ? data[i][2].toString() : 'Penjualan',
+        paymentMethod: data[i][3] ? data[i][3].toString() : 'Cash',
+        customerId: data[i][4] ? data[i][4].toString() : '',
+        customerName: data[i][5] ? data[i][5].toString() : '',
+        items: data[i][6] ? data[i][6].toString() : '[]',
+        subtotal: Number(data[i][7]) || 0,
+        taxAmount: Number(data[i][8]) || 0,
+        grandTotal: Number(data[i][9]) || 0
       });
     }
   }
-
-  return transactions.sort((a, b) => new Date(b.date) - new Date(a.date)); // descending
+  return transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
 // ======================== QUOTATIONS ========================
@@ -254,12 +251,17 @@ function saveQuotation(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Quotations");
 
   sheet.appendRow([
-    data.date,                  // Date (ISO)
-    data.quoNo,                 // Quotation Number
-    data.customerId,            // Customer Info
-    JSON.stringify(data.items), // Items JSON
-    data.total,                 // Total Amount
-    "Menunggu"                  // Status
+    data.date,                   // Date
+    data.quoNo,                  // QuoNo
+    data.status || 'Menunggu',    // Status
+    data.customerId || '',       // CustomerId
+    data.customerName || '',     // CustomerName
+    JSON.stringify(data.items),  // ItemsJson
+    data.subtotal || 0,          // Subtotal
+    data.taxAmount || 0,         // TaxAmount
+    data.grandTotal || 0,        // GrandTotal
+    data.notes || '',            // Notes
+    JSON.stringify(data.settings)// SettingsJson
   ]);
 
   return { success: true };
@@ -276,10 +278,15 @@ function getQuotations() {
       quotations.push({
         date: data[i][0].toString(),
         quoNo: data[i][1].toString(),
-        customerId: data[i][2].toString(),
-        items: data[i][3].toString(),
-        total: Number(data[i][4]) || 0,
-        status: data[i][5] ? data[i][5].toString() : "Menunggu"
+        status: data[i][2].toString(),
+        customerId: data[i][3].toString(),
+        customerName: data[i][4].toString(),
+        items: data[i][5].toString(),
+        subtotal: Number(data[i][6]) || 0,
+        taxAmount: Number(data[i][7]) || 0,
+        grandTotal: Number(data[i][8]) || 0,
+        notes: data[i][9].toString(),
+        settings: data[i][10].toString()
       });
     }
   }
@@ -292,7 +299,7 @@ function updateQuotationStatus(data) {
 
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][1].toString() === data.quoNo) {
-      sheet.getRange(i + 1, 6).setValue(data.status);
+      sheet.getRange(i + 1, 3).setValue(data.status); // Col C
       return { success: true };
     }
   }
