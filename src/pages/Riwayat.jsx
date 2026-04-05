@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Search, ShoppingBag, Truck, FileText, Calendar, Filter, Eye } from 'lucide-react';
+import { Search, ShoppingBag, Truck, FileText, Calendar, Filter, Eye, FileOutput, Loader2, ArrowUpDown } from 'lucide-react';
 import useStore from '../store/useStore';
 
 const Riwayat = () => {
@@ -8,7 +8,12 @@ const Riwayat = () => {
   const [quotations, setQuotations] = useState([]);
   const [activeTab, setActiveTab] = useState('Semua');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState('Terbaru');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
+  const [generatingPdfId, setGeneratingPdfId] = useState(null);
+  const { settings, transactionSettings, quotationSettings } = useStore();
 
   useEffect(() => {
     fetchData();
@@ -42,6 +47,36 @@ const Riwayat = () => {
   };
 
   // Combine and format data based on tab
+
+  const handleGeneratePdf = async (row) => {
+    if (row.raw.pdfLink) {
+      window.open(row.raw.pdfLink, '_blank');
+      return;
+    }
+
+    setGeneratingPdfId(row.id);
+    try {
+      let res;
+      if (row.type === 'Quotation') {
+        const parsedSettings = parseItems(row.raw.settings); // In quotation, settings might be stored, but we pass overrides
+        res = await api.getQuotationPdfLink({ ...row.raw, settings, qSettings: quotationSettings });
+      } else {
+        res = await api.getTransactionPdfLink({ ...row.raw, settings, tSettings: transactionSettings });
+      }
+      if (res.success) {
+        window.open(res.url, '_blank');
+        fetchData();
+      } else {
+        alert('Gagal mendownload PDF: ' + res.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan saat membuat PDF.');
+    } finally {
+      setGeneratingPdfId(null);
+    }
+  };
+
   const getDisplayData = () => {
     let combined = [];
 
@@ -71,8 +106,16 @@ const Riwayat = () => {
       });
     });
 
-    // Date Sort Descending
-    combined.sort((a, b) => b.date - a.date);
+    // Sort based on sortOrder
+    if (sortOrder === 'Terbaru') {
+      combined.sort((a, b) => b.date - a.date);
+    } else if (sortOrder === 'Terlama') {
+      combined.sort((a, b) => a.date - b.date);
+    } else if (sortOrder === 'Tertinggi') {
+      combined.sort((a, b) => b.total - a.total);
+    } else if (sortOrder === 'Terendah') {
+      combined.sort((a, b) => a.total - b.total);
+    }
 
     // Filter by Tab
     if (activeTab !== 'Semua') {
@@ -86,6 +129,27 @@ const Riwayat = () => {
         item.id.toLowerCase().includes(lowerSearch) || 
         (item.name && item.name.toLowerCase().includes(lowerSearch))
       );
+    }
+
+
+    // Filter by Date Range
+    if (startDate) {
+      combined = combined.filter(item => {
+        const d = new Date(item.date);
+        d.setHours(0,0,0,0);
+        const s = new Date(startDate);
+        s.setHours(0,0,0,0);
+        return d >= s;
+      });
+    }
+    if (endDate) {
+      combined = combined.filter(item => {
+        const d = new Date(item.date);
+        d.setHours(0,0,0,0);
+        const e = new Date(endDate);
+        e.setHours(0,0,0,0);
+        return d <= e;
+      });
     }
 
     return combined;
@@ -156,9 +220,49 @@ const Riwayat = () => {
               className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition"
             />
           </div>
-          <button onClick={fetchData} className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2">
-            <Filter className="w-4 h-4" /> Segarkan
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-gray-600 bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm">
+              <Calendar className="w-4 h-4" />
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-400">Dari:</span>
+                <input 
+                  type="date" 
+                  value={startDate} 
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="outline-none bg-transparent font-medium cursor-pointer text-xs"
+                />
+              </div>
+              <span className="text-gray-300">|</span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-400">Sampai:</span>
+                <input 
+                  type="date" 
+                  value={endDate} 
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="outline-none bg-transparent font-medium cursor-pointer text-xs"
+                />
+              </div>
+              {(startDate || endDate) && (
+                <button onClick={() => { setStartDate(''); setEndDate(''); }} className="text-red-500 hover:text-red-700 font-bold ml-1" title="Hapus Filter Tanggal">✕</button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600 bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm">
+              <ArrowUpDown className="w-4 h-4" />
+              <select 
+                value={sortOrder} 
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="outline-none bg-transparent font-medium cursor-pointer"
+              >
+                <option value="Terbaru">Terbaru</option>
+                <option value="Terlama">Terlama</option>
+                <option value="Tertinggi">Nilai Tertinggi</option>
+                <option value="Terendah">Nilai Terendah</option>
+              </select>
+            </div>
+            <button onClick={fetchData} className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
+              <Filter className="w-4 h-4" /> Segarkan
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -181,6 +285,7 @@ const Riwayat = () => {
                   <th className="px-6 py-4 font-semibold">Pihak Terkait</th>
                   <th className="px-6 py-4 font-semibold text-right">Nilai Transaksi</th>
                   <th className="px-6 py-4 font-semibold text-center">Status</th>
+                  <th className="px-6 py-4 font-semibold text-center">Aksi / Dokumen</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -228,6 +333,18 @@ const Riwayat = () => {
                           <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
                             {row.status}
                           </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        {row.raw.pdfLink ? (
+                          <button onClick={() => window.open(row.raw.pdfLink, '_blank')} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-100 border border-blue-200 rounded-lg hover:bg-blue-200 transition">
+                            <Eye className="w-3.5 h-3.5" /> Lihat PDF
+                          </button>
+                        ) : (
+                          <button onClick={() => handleGeneratePdf(row)} disabled={generatingPdfId === row.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-700 bg-gray-100 border border-gray-200 rounded-lg hover:bg-white hover:text-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            {generatingPdfId === row.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileOutput className="w-3.5 h-3.5" />} 
+                            {generatingPdfId === row.id ? 'Memproses...' : 'Generate PDF'}
+                          </button>
                         )}
                       </td>
                     </tr>

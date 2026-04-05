@@ -201,7 +201,24 @@ function saveTransaction(data) {
   ]);
 
   updateStock(data.items, data.type || 'Penjualan');
-  return { success: true };
+
+  // Auto-generate PDF and save link to Column K
+  var pdfLink = '';
+  try {
+    var html = generateTransactionHtml(data);
+    var blob = HtmlService.createHtmlOutput(html).getAs('application/pdf');
+    var fileName = "INV_" + data.receiptNo + "_" + (data.customerName || data.supplierName || "Customer") + ".pdf";
+    var result = saveAndSharePdf(blob, fileName, "Kasir_PDF_Transactions");
+    pdfLink = result.url;
+    // Write PDF link to Column K of the newly appended row
+    var lastRow = sheet.getLastRow();
+    sheet.getRange(lastRow, 11).setValue(pdfLink);
+  } catch (pdfErr) {
+    // PDF generation failure should not block the transaction
+    Logger.log("Auto PDF generation failed: " + pdfErr.toString());
+  }
+
+  return { success: true, pdfLink: pdfLink };
 }
 
 function updateStock(purchasedItems, type) {
@@ -239,7 +256,8 @@ function getTransactions() {
         items: data[i][6] ? data[i][6].toString() : '[]',
         subtotal: Number(data[i][7]) || 0,
         taxAmount: Number(data[i][8]) || 0,
-        grandTotal: Number(data[i][9]) || 0
+        grandTotal: Number(data[i][9]) || 0,
+        pdfLink: data[i][10] ? data[i][10].toString() : ''
       });
     }
   }
@@ -309,11 +327,29 @@ function updateQuotationStatus(data) {
 // ======================== PDF GENERATION ========================
 function getQuotationPdfLink(data) {
   try {
-    var html = generateQuotationHtml(data);
-    var blob = HtmlService.createHtmlOutput(html).getAs('application/pdf');
-    var fileName = "QUO_" + data.quoNo + "_" + (data.custObj?.name || "Customer") + ".pdf";
-    var result = saveAndSharePdf(blob, fileName, "Kasir_PDF_Quotations");
-    return { success: true, url: result.url, id: result.id };
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Quotations");
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][1].toString() === data.quoNo) {
+        if (rows[i][11]) {
+          return { success: true, url: rows[i][11].toString(), cached: true };
+        }
+        var html = generateQuotationHtml(data);
+        var blob = HtmlService.createHtmlOutput(html).getAs('application/pdf');
+        var custName = data.custObj && data.custObj.name ? data.custObj.name : "Customer";
+        var fileName = "QUO_" + data.quoNo + "_" + custName + ".pdf";
+        var result = saveAndSharePdf(blob, fileName, "Kasir_PDF_Quotations");
+        sheet.getRange(i + 1, 12).setValue(result.url);
+        return { success: true, url: result.url, id: result.id, cached: false };
+      }
+    }
+    
+    var html2 = generateQuotationHtml(data);
+    var blob2 = HtmlService.createHtmlOutput(html2).getAs('application/pdf');
+    var custName2 = data.custObj && data.custObj.name ? data.custObj.name : "Customer";
+    var fileName2 = "QUO_" + data.quoNo + "_" + custName2 + ".pdf";
+    var result2 = saveAndSharePdf(blob2, fileName2, "Kasir_PDF_Quotations");
+    return { success: true, url: result2.url, id: result2.id, cached: false };
   } catch (err) {
     return { success: false, error: err.toString() };
   }
@@ -321,11 +357,27 @@ function getQuotationPdfLink(data) {
 
 function getTransactionPdfLink(data) {
   try {
-    var html = generateTransactionHtml(data);
-    var blob = HtmlService.createHtmlOutput(html).getAs('application/pdf');
-    var fileName = "INV_" + data.receiptNo + "_" + (data.customerName || "Customer") + ".pdf";
-    var result = saveAndSharePdf(blob, fileName, "Kasir_PDF_Transactions");
-    return { success: true, url: result.url, id: result.id };
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][1].toString() === data.receiptNo) {
+        if (rows[i][10]) {
+          return { success: true, url: rows[i][10].toString(), cached: true };
+        }
+        var html = generateTransactionHtml(data);
+        var blob = HtmlService.createHtmlOutput(html).getAs('application/pdf');
+        var fileName = "INV_" + data.receiptNo + "_" + (data.customerName || "Customer") + ".pdf";
+        var result = saveAndSharePdf(blob, fileName, "Kasir_PDF_Transactions");
+        sheet.getRange(i + 1, 11).setValue(result.url);
+        return { success: true, url: result.url, id: result.id, cached: false };
+      }
+    }
+    
+    var html2 = generateTransactionHtml(data);
+    var blob2 = HtmlService.createHtmlOutput(html2).getAs('application/pdf');
+    var fileName2 = "INV_" + data.receiptNo + "_" + (data.customerName || "Customer") + ".pdf";
+    var result2 = saveAndSharePdf(blob2, fileName2, "Kasir_PDF_Transactions");
+    return { success: true, url: result2.url, id: result2.id, cached: false };
   } catch (err) {
     return { success: false, error: err.toString() };
   }

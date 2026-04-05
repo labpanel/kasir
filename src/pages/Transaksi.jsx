@@ -503,7 +503,9 @@ const Transaksi = () => {
         taxAmount,
         grandTotal,
         payAmount: actualPayAmount,
-        change: actualChange
+        change: actualChange,
+        settings,
+        tSettings
       };
       await api.saveTransaction(data);
 
