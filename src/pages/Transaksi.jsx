@@ -122,7 +122,7 @@ const ReceiptA4 = ({ data, settings, formatIDR }) => (
     <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px' }}>
       <thead>
         <tr style={{ backgroundColor: '#1e40af' }}>
-          {['No', 'Produk', 'Qty', 'Harga Satuan', 'Total'].map((h, i) => (
+          {['No', 'Produk / Deskripsi', 'Qty', 'Harga Satuan', 'Total'].map((h, i) => (
             <th key={i} style={{ padding: '12px 16px', color: 'white', fontSize: '12px', fontWeight: '700', textAlign: i === 2 ? 'center' : i > 2 ? 'right' : 'left', textTransform: 'uppercase' }}>{h}</th>
           ))}
         </tr>
@@ -133,7 +133,6 @@ const ReceiptA4 = ({ data, settings, formatIDR }) => (
             <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>{idx + 1}</td>
             <td style={{ padding: '12px 16px' }}>
               <p style={{ fontWeight: '600', fontSize: '14px', margin: 0 }}>{item.name}</p>
-              <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 0 0' }}>Kode: {item.code}</p>
             </td>
             <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '600' }}>{item.qty}</td>
             <td style={{ padding: '12px 16px', textAlign: 'right', fontSize: '13px', color: '#475569' }}>{formatIDR(item.price)}</td>

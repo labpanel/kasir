@@ -738,7 +738,6 @@ const Quotation = () => {
                         <tr key={item.code} className="text-gray-800">
                           <td className="py-3">
                             <p className="font-medium text-sm">{item.name}</p>
-                            <p className="text-xs text-gray-500">{item.code}</p>
                           </td>
                           <td className="py-3 text-center">
                             <div className="flex items-center justify-center gap-1">
