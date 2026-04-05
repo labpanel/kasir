@@ -1,4 +1,4 @@
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzP6-Yeq1HZjytjvVU057ck1j9i-nUHcVpdvKFP_tZ4B0vCHMoB3or9ciIg5iQ7EUbqzw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzALXd7sS19iVr683vvHmlULv3FXjzEyzg7D2718c48iVm7v13-TadppHe7dHxwhFTsrw/exec';
 
 // Set to true for local-only authentication and data management
 const MOCK_MODE = false;
@@ -119,6 +119,10 @@ export const api = {
   async updateQuotationStatus(quoNo, status) {
     if (MOCK_MODE) return { success: true };
     return await request('updateQuotationStatus', { quoNo, status }, 'POST');
+  },
+  async getQuotationPdfLink(data) {
+    if (MOCK_MODE) return { success: true, url: '#' };
+    return await request('getQuotationPdfLink', data, 'POST');
   },
 
   // SUPPLIERS

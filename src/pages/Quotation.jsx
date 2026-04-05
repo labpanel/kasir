@@ -500,6 +500,7 @@ const Quotation = () => {
   const [loading, setLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savedInfo, setSavedInfo] = useState(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const [notes, setNotes] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [termsText, setTermsText] = useState('');
@@ -615,20 +616,48 @@ const Quotation = () => {
           )}
           <div className="flex gap-2 flex-wrap">
             <button 
-              onClick={() => {
+              onClick={async () => {
                 if (!selectedCustomer || cart.length === 0) {
                   alert('Pilih pelanggan dan tambahkan barang terlebih dahulu!');
                   return;
                 }
-                const phone = selectedCustomer;
-                const message = `Halo, berikut adalah penawaran harga dari ${settings.storeName} dengan nomor ${quotationNo}. Total tagihan: ${formatIDR(grandTotal)}. Terimakasih.`;
-                window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                setGeneratingPdf(true);
+                try {
+                  const pdfRes = await api.getQuotationPdfLink({
+                    quoNo: quotationNo,
+                    custObj,
+                    cart,
+                    subtotal,
+                    taxPercent: taxEnabled ? taxPercent : 0,
+                    taxAmount,
+                    grandTotal,
+                    notes,
+                    settings,
+                    qSettings,
+                    dateStr: new Date().toLocaleDateString('id-ID')
+                  });
+
+                  if (pdfRes.success) {
+                    const phone = selectedCustomer;
+                    const message = `Halo, berikut adalah penawaran harga dari ${settings.storeName} dengan nomor ${quotationNo}. \n\n📄 Lihat PDF: ${pdfRes.url} \n\nTotal tagihan: ${formatIDR(grandTotal)}. Terimakasih.`;
+                    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                  } else {
+                    alert('Gagal membuat PDF: ' + (pdfRes.error || 'Terjadi kesalahan'));
+                  }
+                } catch (err) {
+                  alert('Terjadi kesalahan saat menyiapkan PDF.');
+                }
+                setGeneratingPdf(false);
               }}
-              disabled={cart.length === 0 || !selectedCustomer}
+              disabled={cart.length === 0 || !selectedCustomer || generatingPdf}
               className="px-3 md:px-4 py-2 bg-emerald-600 text-white rounded-xl shadow font-bold hover:bg-emerald-700 flex items-center gap-2 transition text-sm disabled:opacity-50"
             >
-              <div className="w-2 h-2 rounded-full bg-white animate-pulse hidden sm:block"></div>
-              Kirim WA
+              {generatingPdf ? (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <div className="w-2 h-2 rounded-full bg-white animate-pulse hidden sm:block"></div>
+              )}
+              {generatingPdf ? 'Menyiapkan PDF...' : 'Kirim WA'}
             </button>
             <button onClick={() => setShowSettings(true)} className="px-3 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 flex items-center gap-2 transition text-sm shadow-sm">
               <Settings className="w-4 h-4" /> Template
