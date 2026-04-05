@@ -85,7 +85,7 @@ const Riwayat = () => {
         id: t.receiptNo || `TRX-${new Date(t.date).getTime()}`,
         date: new Date(t.date),
         type: t.type || 'Penjualan',
-        name: t.type === 'Pembelian' ? t.supplierName : t.customerName,
+        name: t.partnerName || '-',
         total: t.subtotal || 0,
         itemsStr: t.items,
         status: 'Selesai',
@@ -99,7 +99,7 @@ const Riwayat = () => {
         date: new Date(q.date),
         type: 'Quotation',
         name: q.customerId || 'Pelanggan',
-        total: q.total || 0,
+        total: q.grandTotal || 0,
         itemsStr: q.items,
         status: q.status || 'Menunggu',
         raw: q

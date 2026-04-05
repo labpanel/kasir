@@ -554,9 +554,11 @@ const Quotation = () => {
       const data = { 
         date: new Date().toISOString(), 
         quoNo: quotationNo, 
-        customerId: selectedCustomer, 
+        customerId: selectedCustomer,
+        customerName: customers.find(c => c.phone === selectedCustomer)?.name || '', 
         items: cart, 
-        total: grandTotal, 
+        subtotal,
+        grandTotal, 
         taxPercent: taxEnabled ? taxPercent : 0, 
         taxAmount 
       };
@@ -570,7 +572,7 @@ const Quotation = () => {
   const getWaLink = () => {
     if (!savedInfo) return '';
     const phone = savedInfo.customerId; 
-    const message = `Halo, berikut adalah penawaran harga dari ${settings.storeName} dengan nomor ${savedInfo.quoNo}. Total tagihan: ${formatIDR(savedInfo.total)}. Terimakasih.`;
+    const message = `Halo, berikut adalah penawaran harga dari ${settings.storeName} dengan nomor ${savedInfo.quoNo}. Total tagihan: ${formatIDR(savedInfo.grandTotal)}. Terimakasih.`;
     return `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
   };
 

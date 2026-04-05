@@ -83,9 +83,7 @@ function getProducts() {
         category: data[i][2] ? data[i][2].toString() : '',
         purchasePrice: Number(data[i][3]) || 0,
         sellingPrice: Number(data[i][4]) || 0,
-        stock: Number(data[i][5]) || 0,
-        minStock: Number(data[i][6]) || 0,
-        unit: data[i][7] ? data[i][7].toString() : 'Pcs'
+        stock: Number(data[i][5]) || 0
       });
     }
   }
@@ -94,7 +92,7 @@ function getProducts() {
 
 function addProduct(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Products");
-  sheet.appendRow([data.code, data.name, data.category, data.purchasePrice, data.sellingPrice, data.stock, data.minStock || 0, data.unit || 'Pcs']);
+  sheet.appendRow([data.code, data.name, data.category, data.purchasePrice, data.sellingPrice, data.stock]);
   return { success: true };
 }
 
@@ -141,8 +139,7 @@ function getCustomers() {
       customers.push({
         phone: data[i][0].toString(),
         name: data[i][1] ? data[i][1].toString() : '',
-        address: data[i][2] ? data[i][2].toString() : '',
-        points: Number(data[i][3]) || 0
+        address: data[i][2] ? data[i][2].toString() : ''
       });
     }
   }
@@ -192,8 +189,8 @@ function saveTransaction(data) {
     data.receiptNo,              // ReceiptNo
     data.type || 'Penjualan',    // Type
     data.paymentMethod || 'Cash',// PaymentMethod
-    data.customerId || '',       // CustomerId
-    data.customerName || '',     // CustomerName
+    data.customerId || data.supplierId || '',     // PartnerId (Col E)
+    data.customerName || data.supplierName || '',   // PartnerName (Col F)
     JSON.stringify(data.items),  // ItemsJson
     data.subtotal,               // Subtotal
     data.taxAmount || 0,         // TaxAmount
@@ -251,8 +248,8 @@ function getTransactions() {
         receiptNo: data[i][1].toString(),
         type: data[i][2] ? data[i][2].toString() : 'Penjualan',
         paymentMethod: data[i][3] ? data[i][3].toString() : 'Cash',
-        customerId: data[i][4] ? data[i][4].toString() : '',
-        customerName: data[i][5] ? data[i][5].toString() : '',
+        partnerId: data[i][4] ? data[i][4].toString() : '',
+        partnerName: data[i][5] ? data[i][5].toString() : '',
         items: data[i][6] ? data[i][6].toString() : '[]',
         subtotal: Number(data[i][7]) || 0,
         taxAmount: Number(data[i][8]) || 0,
@@ -303,8 +300,9 @@ function getQuotations() {
         subtotal: Number(data[i][6]) || 0,
         taxAmount: Number(data[i][7]) || 0,
         grandTotal: Number(data[i][8]) || 0,
-        notes: data[i][9].toString(),
-        settings: data[i][10].toString()
+        notes: data[i][9] ? data[i][9].toString() : '',
+        settings: data[i][10] ? data[i][10].toString() : '',
+        pdfLink: data[i][11] ? data[i][11].toString() : ''
       });
     }
   }
