@@ -42,6 +42,8 @@ function doPost(e) {
       return response(updateQuotationStatus(data));
     } else if (action === "getQuotationPdfLink") {
       return response(getQuotationPdfLink(data));
+    } else if (action === "getTransactionPdfLink") {
+      return response(getTransactionPdfLink(data));
     } else if (action === "addSupplier") {
       return response(addSupplier(data));
     } else if (action === "editSupplier") {
@@ -302,8 +304,20 @@ function getQuotationPdfLink(data) {
   try {
     var html = generateQuotationHtml(data);
     var blob = HtmlService.createHtmlOutput(html).getAs('application/pdf');
-    var fileName = "QUO_" + data.quoNo + "_" + (data.custObj.name || "Customer") + ".pdf";
-    var result = saveAndSharePdf(blob, fileName);
+    var fileName = "QUO_" + data.quoNo + "_" + (data.custObj?.name || "Customer") + ".pdf";
+    var result = saveAndSharePdf(blob, fileName, "Kasir_PDF_Quotations");
+    return { success: true, url: result.url, id: result.id };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+function getTransactionPdfLink(data) {
+  try {
+    var html = generateTransactionHtml(data);
+    var blob = HtmlService.createHtmlOutput(html).getAs('application/pdf');
+    var fileName = "INV_" + data.receiptNo + "_" + (data.customerName || "Customer") + ".pdf";
+    var result = saveAndSharePdf(blob, fileName, "Kasir_PDF_Transactions");
     return { success: true, url: result.url, id: result.id };
   } catch (err) {
     return { success: false, error: err.toString() };
@@ -387,15 +401,87 @@ function generateQuotationHtml(data) {
     '</div>';
 }
 
-function saveAndSharePdf(blob, fileName) {
-  var folderName = "Kasir_PDF_Quotations";
-  var folders = DriveApp.getFoldersByName(folderName);
+function generateTransactionHtml(data) {
+  var settings = data.settings || {};
+  var cart = data.items || [];
+  var accent = '#0ea5e9'; // Blue for invoices
+
+  var tableRows = cart.map(function (item) {
+    return '<tr>' +
+      '<td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 12px;">' + item.name + '</td>' +
+      '<td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 12px; text-align: center;">' + item.qty + '</td>' +
+      '<td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 12px; text-align: right;">' + formatIDR(item.price) + '</td>' +
+      '<td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 12px; text-align: right; font-weight: bold;">' + formatIDR(item.price * item.qty) + '</td>' +
+      '</tr>';
+  }).join('');
+
+  return '<div style="font-family: Arial, sans-serif; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">' +
+    '<div style="border-bottom: 3px solid ' + accent + '; padding-bottom: 15px; margin-bottom: 20px;">' +
+    '<table style="width: 100%;">' +
+    '<tr>' +
+    '<td>' +
+    '<h1 style="margin: 0; color: ' + accent + '; font-size: 24px;">' + (settings.storeName || "KASIR APP") + '</h1>' +
+    '<p style="margin: 5px 0; font-size: 11px; color: #666;">' + (settings.storeAddress || "") + '</p>' +
+    '<p style="margin: 2px 0; font-size: 11px; color: #666;">Tel: ' + (settings.storePhone || "") + '</p>' +
+    '</td>' +
+    '<td style="text-align: right; vertical-align: top;">' +
+    '<h2 style="margin: 0; color: ' + accent + '; font-size: 28px; letter-spacing: 2px;">INVOICE</h2>' +
+    '<p style="margin: 5px 0; font-size: 11px; color: #666;">No: ' + data.receiptNo + '</p>' +
+    '<p style="margin: 2px 0; font-size: 11px; color: #666;">Tgl: ' + new Date(data.date).toLocaleString('id-ID') + '</p>' +
+    '</td>' +
+    '</tr>' +
+    '</table>' +
+    '</div>' +
+
+    '<div style="margin-bottom: 30px;">' +
+    '<p style="margin: 0 0 5px 0; font-size: 10px; text-transform: uppercase; color: #999; letter-spacing: 1px;">Ditujukan Kepada:</p>' +
+    '<p style="margin: 0; font-weight: bold; font-size: 14px;">' + (data.customerName || "Pelanggan Umum") + '</p>' +
+    '<p style="margin: 2px 0; font-size: 11px; color: #444;">ID: ' + (data.customerId || "-") + '</p>' +
+    '</div>' +
+
+    '<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">' +
+    '<thead>' +
+    '<tr style="background-color: #f1f5f9;">' +
+    '<th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-size: 11px;">PRODUK</th>' +
+    '<th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd; font-size: 11px;">QTY</th>' +
+    '<th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd; font-size: 11px;">HARGA</th>' +
+    '<th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd; font-size: 11px;">TOTAL</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody>' + tableRows + '</tbody>' +
+    '</table>' +
+
+    '<div style="display: flex; justify-content: flex-end;">' +
+    '<table style="width: 250px; border-collapse: collapse;">' +
+    '<tr><td style="padding: 5px 0; font-size: 12px; color: #666;">Subtotal:</td><td style="text-align: right; font-size: 12px;">' + formatIDR(data.subtotal) + '</td></tr>' +
+    (data.taxPercent > 0 ? '<tr><td style="padding: 5px 0; font-size: 12px; color: #666;">PPN (' + data.taxPercent + '%):</td><td style="text-align: right; font-size: 12px;">' + formatIDR(data.taxAmount) + '</td></tr>' : '') +
+    '<tr><td style="padding: 10px 0; border-top: 2px solid #333; font-weight: bold; font-size: 14px;">GRAND TOTAL:</td><td style="text-align: right; border-top: 2px solid #333; font-weight: bold; font-size: 14px;">' + formatIDR(data.grandTotal) + '</td></tr>' +
+    '</table>' +
+    '</div>' +
+
+    '<div style="margin-top: 60px;">' +
+    '<table style="width: 100%;">' +
+    '<tr>' +
+    '<td style="width: 180px; text-align: center; border-top: 1px solid #ddd; padding-top: 8px; font-size: 11px;">( Pelanggan )</td>' +
+    '<td></td>' +
+    '<td style="width: 180px; text-align: center; border-top: 1px solid #ddd; padding-top: 8px; font-size: 11px;">( ' + (settings.storeName || "Kasir") + ' )</td>' +
+    '</tr>' +
+    '</table>' +
+    '</div>' +
+
+    '<p style="text-align: center; color: #94a3b8; font-size: 9px; margin-top: 40px; border-top: 1px solid #f1f5f9; padding-top: 10px;">Terima kasih atas kunjungan Anda</p>' +
+    '</div>';
+}
+
+function saveAndSharePdf(blob, fileName, folderName) {
+  var targetFolderName = folderName || "Kasir_PDF_Default";
+  var folders = DriveApp.getFoldersByName(targetFolderName);
   var folder;
 
   if (folders.hasNext()) {
     folder = folders.next();
   } else {
-    folder = DriveApp.createFolder(folderName);
+    folder = DriveApp.createFolder(targetFolderName);
   }
 
   var file = folder.createFile(blob);

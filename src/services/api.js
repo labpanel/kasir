@@ -124,6 +124,10 @@ export const api = {
     if (MOCK_MODE) return { success: true, url: '#' };
     return await request('getQuotationPdfLink', data, 'POST');
   },
+  async getTransactionPdfLink(data) {
+    if (MOCK_MODE) return { success: true, url: '#' };
+    return await request('getTransactionPdfLink', data, 'POST');
+  },
 
   // SUPPLIERS
   async getSuppliers() {

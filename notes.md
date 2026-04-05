@@ -191,7 +191,7 @@ function deleteSupplier(d) {
 
 ### 3. Deploy GitHub Pages
 - **base** di `vite.config.js`: `'/kasir/'` (atau nama repo).
-- **Router**: Disarankan `HashRouter` di `App.jsx`.
+- **Router**: Disarankan `HashRouter` di `App.jsx`.   BrowserRouter
 - **Source**: Pilih `GitHub Actions` di settings repo.
 
 ---

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import useStore from '../store/useStore';
 import { api } from '../services/api';
-import { Search, Plus, Minus, Trash2, Printer, ShoppingCart, Package, X, Banknote, CreditCard, QrCode, FileText, Receipt, LayoutGrid, List, Percent } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Printer, ShoppingCart, Package, X, Banknote, CreditCard, QrCode, FileText, Receipt, LayoutGrid, List, Percent, MessageSquare, Cloud } from 'lucide-react';
 
 // =============================================
 // RECEIPT TEMPLATES
@@ -315,6 +315,49 @@ const Transaksi = () => {
     setReceiptData(null);
   };
 
+  const handleSendWhatsApp = () => {
+    if (!receiptData) return;
+    const itemsText = receiptData.items.map(item => 
+      `${item.qty}x ${item.name} - ${formatIDR(item.price * item.qty)}`
+    ).join('\n');
+
+    const message = `
+*${settings.storeName || 'NOTA TRANSAKSI'}*
+--------------------------------
+No: ${receiptData.receiptNo}
+Tgl: ${new Date(receiptData.date).toLocaleString('id-ID')}
+--------------------------------
+${itemsText}
+--------------------------------
+*Subtotal: ${formatIDR(receiptData.subtotal)}*
+${receiptData.taxAmount > 0 ? `PPN (${receiptData.taxPercent}%): ${formatIDR(receiptData.taxAmount)}` : ''}
+*TOTAL: ${formatIDR(receiptData.grandTotal)}*
+--------------------------------
+Terima kasih!
+    `.trim();
+
+    const phone = receiptData.customerId || '';
+    const waUrl = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank');
+  };
+
+  const handleSaveToDrive = async () => {
+    if (!receiptData) return;
+    setLoading(true);
+    try {
+      const res = await api.getTransactionPdfLink({ ...receiptData, settings });
+      if (res.success) {
+        window.open(res.url, '_blank');
+      } else {
+        alert('Gagal menyimpan ke Drive: ' + res.error);
+      }
+    } catch (err) {
+      alert('Terjadi kesalahan saat menyimpan ke Drive');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const canProcess = paymentMethod === 'Cash'
     ? cart.length > 0 && Number(payAmount) >= subtotal
     : cart.length > 0;
@@ -620,6 +663,22 @@ const Transaksi = () => {
                     </div>
                   </button>
                 </div>
+              </div>
+
+              {/* Advanced Actions */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={handleSendWhatsApp}
+                  className="flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition font-bold text-sm"
+                >
+                  <MessageSquare className="w-5 h-5" /> WhatsApp
+                </button>
+                <button
+                  onClick={handleSaveToDrive}
+                  className="flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition font-bold text-sm"
+                >
+                  <Cloud className="w-5 h-5" /> Simpan ke Drive
+                </button>
               </div>
             </div>
 
