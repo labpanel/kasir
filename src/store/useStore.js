@@ -51,6 +51,28 @@ const useStore = create(
       updateQuotationSettings: (newSettings) =>
         set((state) => ({ quotationSettings: { ...state.quotationSettings, ...newSettings } })),
 
+      // --- Transaction Template Settings ---
+      transactionSettings: {
+        template: 'thermal', // 'professional', 'minimalist', 'classic', 'thermal'
+        thermalPaperWidth: '58mm', // '58mm' or '80mm'
+        signatureLeft: 'Pelanggan',
+        signatureRight: 'Kasir',
+        signatureLeftImage: '',  // base64 data URL
+        signatureRightImage: '', // base64 data URL
+        showLogo: true,
+        headerTitle: 'INVOICE',
+        headerSubtitle: 'Nota Transaksi',
+        showStoreAddress: true,
+        showStorePhone: true,
+        showStoreEmail: false,
+        showStoreWebsite: false,
+        accentColor: '#1e40af',
+        footerText: 'Terima kasih atas kunjungan Anda • Barang yang sudah dibeli tidak dapat dikembalikan',
+        notes: '',
+      },
+      updateTransactionSettings: (newSettings) =>
+        set((state) => ({ transactionSettings: { ...state.transactionSettings, ...newSettings } })),
+
       // --- Cart State (POS) ---
       cart: [],
       addToCart: (product, qty = 1) => set((state) => {
@@ -91,7 +113,13 @@ const useStore = create(
     }),
     {
       name: 'kasir-storage', // name of the item in the storage (must be unique)
-      partialize: (state) => ({ user: state.user, settings: state.settings, quotationSettings: state.quotationSettings, rolePermissions: state.rolePermissions }),
+      partialize: (state) => ({ 
+        user: state.user, 
+        settings: state.settings, 
+        quotationSettings: state.quotationSettings, 
+        transactionSettings: state.transactionSettings,
+        rolePermissions: state.rolePermissions 
+      }),
     }
   )
 );

@@ -1,4 +1,4 @@
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0PicuZ5jMf62BiFAQAP6qX6CiKrOWY5V-YH7iQRG3x7U5xO-upsRy9CvZsnzlyG86QA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkXDaeF-IBR8VyHS7eDiGoDpBpyrEorRwC64zeTJcy0RTKV0ylktBahGeAnN7pBt4TMQ/exec';
 
 // Set to true for local-only authentication and data management
 const MOCK_MODE = false;
@@ -43,36 +43,25 @@ const request = async (action, data = null, method = 'GET') => {
 export const api = {
   async verifyLogin(email, password) {
     if (MOCK_MODE) {
-      // Allow any login for testing or a specific one
       if (email === 'admin@gmail.com' && password === '1234') {
         return { success: true, user: { email, role: 'Admin', name: 'Administrator' } };
       }
-      if (email === 'kasir@gmail.com' && password === '1234') {
-        return { success: true, user: { email, role: 'Pegawai', name: 'Kasir Utama' } };
-      }
-      return { success: false, error: 'Email atau password salah (Local Mode: coba admin@gmail.com / 1234)' };
+      return { success: false, error: 'Email atau password salah' };
     }
     return await request('verifyLogin', { email, password }, 'POST');
   },
   async registerUser(email, password, name) {
-    if (MOCK_MODE) {
-      return { success: true };
-    }
+    if (MOCK_MODE) return { success: true };
     return await request('registerUser', { email, password, name }, 'POST');
   },
   async resetPassword(email, newPassword) {
-    if (MOCK_MODE) {
-      return { success: true };
-    }
+    if (MOCK_MODE) return { success: true };
     return await request('resetPassword', { email, newPassword }, 'POST');
   },
 
   // PRODUCTS
   async getProducts() {
-    if (MOCK_MODE) return [
-      { code: 'MOCK001', name: 'Produk Contoh A', category: 'Umum', purchasePrice: 10000, sellingPrice: 15000, stock: 10 },
-      { code: 'MOCK002', name: 'Produk Contoh B', category: 'Umum', purchasePrice: 20000, sellingPrice: 25000, stock: 5 }
-    ];
+    if (MOCK_MODE) return [];
     return await request('getProducts');
   },
   async addProduct(data) {
@@ -108,10 +97,7 @@ export const api = {
 
   // TRANSACTIONS
   async getTransactions() {
-    if (MOCK_MODE) return [
-      { date: new Date().toISOString(), type: 'Penjualan', receiptNo: 'TRX-1234', customerName: 'Budi', subtotal: 150000, items: '[{"name": "Produk A", "qty": 2, "sellingPrice": 75000}]' },
-      { date: new Date(Date.now() - 86400000).toISOString(), type: 'Pembelian', receiptNo: 'TRX-1235', supplierName: 'Supplier X', subtotal: 500000, items: '[]' }
-    ];
+    if (MOCK_MODE) return [];
     return await request('getTransactions');
   },
   async saveTransaction(transactionData) {
@@ -159,3 +145,5 @@ export const api = {
     return await request('deleteSupplier', { phone }, 'POST');
   }
 };
+
+export default api;
