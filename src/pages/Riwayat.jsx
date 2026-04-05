@@ -66,7 +66,7 @@ const Riwayat = () => {
         name: q.customerId || 'Pelanggan',
         total: q.total || 0,
         itemsStr: q.items,
-        status: 'Menunggu',
+        status: q.status || 'Menunggu',
         raw: q
       });
     });
@@ -89,6 +89,15 @@ const Riwayat = () => {
     }
 
     return combined;
+  };
+
+  const handleStatusChange = async (quoNo, newStatus) => {
+    try {
+      await api.updateQuotationStatus(quoNo, newStatus);
+      fetchData();
+    } catch {
+      alert('Gagal memperbarui status quotation.');
+    }
   };
 
   const displayData = getDisplayData();
@@ -201,11 +210,25 @@ const Riwayat = () => {
                         <p className="text-sm font-bold text-gray-900">{formatIDR(row.total)}</p>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                          row.status === 'Selesai' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                        }`}>
-                          {row.status}
-                        </span>
+                        {row.type === 'Quotation' ? (
+                          <select 
+                            value={row.status} 
+                            onChange={(e) => handleStatusChange(row.id, e.target.value)}
+                            className={`px-3 py-1 rounded-full text-xs font-semibold outline-none cursor-pointer border shadow-sm transition hover:scale-105 ${
+                              row.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
+                              row.status === 'Ditolak' ? 'bg-rose-100 text-rose-700 border-rose-200' : 
+                              'bg-amber-100 text-amber-700 border-amber-200'
+                            }`}
+                          >
+                            <option value="Menunggu">Menunggu</option>
+                            <option value="Disetujui">Disetujui</option>
+                            <option value="Ditolak">Ditolak</option>
+                          </select>
+                        ) : (
+                          <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                            {row.status}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   )

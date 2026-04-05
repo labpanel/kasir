@@ -38,6 +38,8 @@ function doPost(e) {
       return response(deleteCustomer(data));
     } else if (action === "saveQuotation") {
       return response(saveQuotation(data));
+    } else if (action === "updateQuotationStatus") {
+      return response(updateQuotationStatus(data));
     } else if (action === "addSupplier") {
       return response(addSupplier(data));
     } else if (action === "editSupplier") {
@@ -252,7 +254,8 @@ function saveQuotation(data) {
     data.quoNo,                 // Quotation Number
     data.customerId,            // Customer Info
     JSON.stringify(data.items), // Items JSON
-    data.total                  // Total Amount
+    data.total,                 // Total Amount
+    "Menunggu"                  // Status
   ]);
   
   return { success: true };
@@ -271,11 +274,25 @@ function getQuotations() {
         quoNo: data[i][1].toString(),
         customerId: data[i][2].toString(),
         items: data[i][3].toString(),
-        total: Number(data[i][4]) || 0
+        total: Number(data[i][4]) || 0,
+        status: data[i][5] ? data[i][5].toString() : "Menunggu"
       });
     }
   }
   return quotations;
+}
+
+function updateQuotationStatus(data) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Quotations");
+  var rows = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][1].toString() === data.quoNo) {
+      sheet.getRange(i + 1, 6).setValue(data.status);
+      return { success: true };
+    }
+  }
+  return { error: "Quotation not found" };
 }
 
 // ======================== AUTHENTICATION ========================

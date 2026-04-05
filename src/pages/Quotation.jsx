@@ -498,6 +498,8 @@ const Quotation = () => {
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savedInfo, setSavedInfo] = useState(null);
   const [notes, setNotes] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [termsText, setTermsText] = useState('');
@@ -542,16 +544,33 @@ const Quotation = () => {
   const subtotal = cart.reduce((sum, item) => sum + (item.sellingPrice * item.qty), 0);
   const taxAmount = taxEnabled ? Math.round(subtotal * taxPercent / 100) : 0;
   const grandTotal = subtotal + taxAmount;
-  const quotationNo = `QT-${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2, '0')}-${Math.floor(Math.random()*10000).toString().padStart(4, '0')}`;
+  const [quotationNo] = useState(() => `QT-${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2, '0')}-${Math.floor(Math.random()*10000).toString().padStart(4, '0')}`);
 
   const handleSave = async () => {
     if (cart.length === 0 || !selectedCustomer) { alert('Keranjang kosong atau pelanggan belum dipilih!'); return; }
     setLoading(true);
     try {
-      await api.saveQuotation({ date: new Date().toISOString(), quoNo: quotationNo, customerId: selectedCustomer, items: cart, total: grandTotal, taxPercent: taxEnabled ? taxPercent : 0, taxAmount });
-      alert('Quotation berhasil disimpan!');
+      const data = { 
+        date: new Date().toISOString(), 
+        quoNo: quotationNo, 
+        customerId: selectedCustomer, 
+        items: cart, 
+        total: grandTotal, 
+        taxPercent: taxEnabled ? taxPercent : 0, 
+        taxAmount 
+      };
+      await api.saveQuotation(data);
+      setIsSaved(true);
+      setSavedInfo(data);
     } catch { alert('Gagal menyimpan quotation.'); }
     setLoading(false);
+  };
+
+  const getWaLink = () => {
+    if (!savedInfo) return '';
+    const phone = savedInfo.customerId; 
+    const message = `Halo, berikut adalah penawaran harga dari ${settings.storeName} dengan nomor ${savedInfo.quoNo}. Total tagihan: ${formatIDR(savedInfo.total)}. Terimakasih.`;
+    return `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
   };
 
   const handlePrint = () => { setTimeout(() => { window.print(); }, 200); };
@@ -578,7 +597,39 @@ const Quotation = () => {
             <h1 className="text-xl md:text-2xl font-bold text-gray-900">Buat Quotation</h1>
             <p className="text-gray-500 text-sm">Penawaran harga untuk pelanggan.</p>
           </div>
+          {isSaved && (
+            <div className="flex-1 max-w-sm px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-2 text-emerald-700 text-sm font-medium">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                Tersimpan!
+              </div>
+              <a 
+                href={getWaLink()} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition shadow-sm"
+              >
+                Kiriman WA
+              </a>
+            </div>
+          )}
           <div className="flex gap-2 flex-wrap">
+            <button 
+              onClick={() => {
+                if (!selectedCustomer || cart.length === 0) {
+                  alert('Pilih pelanggan dan tambahkan barang terlebih dahulu!');
+                  return;
+                }
+                const phone = selectedCustomer;
+                const message = `Halo, berikut adalah penawaran harga dari ${settings.storeName} dengan nomor ${quotationNo}. Total tagihan: ${formatIDR(grandTotal)}. Terimakasih.`;
+                window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+              }}
+              disabled={cart.length === 0 || !selectedCustomer}
+              className="px-3 md:px-4 py-2 bg-emerald-600 text-white rounded-xl shadow font-bold hover:bg-emerald-700 flex items-center gap-2 transition text-sm disabled:opacity-50"
+            >
+              <div className="w-2 h-2 rounded-full bg-white animate-pulse hidden sm:block"></div>
+              Kirim WA
+            </button>
             <button onClick={() => setShowSettings(true)} className="px-3 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 flex items-center gap-2 transition text-sm shadow-sm">
               <Settings className="w-4 h-4" /> Template
             </button>
